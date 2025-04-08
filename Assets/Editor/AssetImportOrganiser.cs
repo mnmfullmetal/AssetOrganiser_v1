@@ -12,17 +12,25 @@ public class AssetImportOrganiser : AssetPostprocessor
     {
         foreach (string assetPath in importedAssets)
         {
+            if (assetPath.StartsWith("Assets/Editor/"))
+            {
+                continue;
+            }
+
             string extension = Path.GetExtension(Path.GetFileName(assetPath));
 
-            if (AssetFolderSettings.assetFolderMap.ContainsKey(extension))
-            {
-                string destinationFolder = AssetFolderSettings.assetFolderMap[extension];
-                EditorApplication.delayCall += () => MoveAssetToFolder(assetPath, destinationFolder);
-            }
-            else
-            {
-                Debug.Log("Asset type not handled: " + extension + " path: " + assetPath);
-            }
+
+            // Section commented out as AssetFolderMap no longer exists and the current logic will cause errors. Functionality to be updated. 
+
+            //if (AssetFolderSettings.AssetFolderMap.ContainsKey(extension))
+            //{
+            //    string destinationFolder = AssetFolderSettings.AssetFolderMap[extension];
+            //    EditorApplication.delayCall += () => MoveAssetToFolder(assetPath, destinationFolder);
+            //}
+            //else
+            //{
+            //    Debug.Log("Asset type not handled: " + extension + " path: " + assetPath);
+            //}
 
         }
 

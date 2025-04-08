@@ -8,4 +8,7 @@ public class FolderNode
     public string Path { get; set; }
 
     public List<FolderNode> Children { get; set; }
+
+    public List<string> AssociatedExtensions { get; set; } = new List<string>();
+
 }

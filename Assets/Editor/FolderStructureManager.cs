@@ -6,6 +6,39 @@ using UnityEditor;
 
 public static class FolderStructureManager 
 {
+    //Default folder structure following unity project organisation best practices.
+    public static List<FolderNode> DefaultFolderStructure { get; private set; } = new List<FolderNode>()
+    {
+        new FolderNode { DisplayName = "Assets", Path = "Assets/", Children = new List<FolderNode>()
+        {
+              new FolderNode { DisplayName = "Art", Path = "Assets/Art",  Children = new List<FolderNode>()
+              {
+                  new FolderNode { DisplayName = "Materials", Path = "Assets/Art/Materials",  AssociatedExtensions = new List<string> { ".mat" } },
+                  new FolderNode { DisplayName = "Models", Path = "Assets/Art/Models",  AssociatedExtensions = new List<string> { ".fbx", ".obj" }},
+                  new FolderNode { DisplayName = "Textures", Path = "Assets/Art/Textures", AssociatedExtensions = new List<string> { ".png", ".jpg", ".jpeg", ".tga", ".psd", ".tiff" }  }
+              }},
+              new FolderNode { DisplayName = "Audio", Path = "Assets/Audio", Children= new List<FolderNode>()
+              {
+                  new FolderNode {DisplayName ="Music", Path = "Assets/Audio/Music",  AssociatedExtensions = new List<string> { ".mp3", ".ogg" }},
+                  new FolderNode {DisplayName ="Sound", Path = "Assets/Audio/Sound", AssociatedExtensions = new List<string> { ".wav" } }
+              }},
+              new FolderNode { DisplayName = "Code", Path = "Assets/Code" , Children = new List < FolderNode >()
+              {
+                  new FolderNode {DisplayName ="Scripts", Path = "Assets/Code/Scripts", AssociatedExtensions = new List<string> { ".cs" }},
+                  new FolderNode {DisplayName = "Shaders", Path = "Assets/Code/Shaders", AssociatedExtensions = new List<string> { ".shader", ".cginc" }}
+              }},
+              new FolderNode { DisplayName = "Docs", Path = "Assets/Docs" },
+              new FolderNode { DisplayName = "Level", Path = "Assets/Level", Children = new List < FolderNode >()
+              {
+                  new FolderNode {DisplayName = "Prefabs", Path = "Assets/Level/Prefabs", AssociatedExtensions = new List<string> { ".prefab" }},
+                  new FolderNode {DisplayName = "Scenes", Path = "Assets/Level/Scenes", AssociatedExtensions = new List<string> { ".unity" }},
+                  new FolderNode {DisplayName = "UI", Path = "Assets/Level/UI"},
+
+              }}
+        }
+       }
+    };
+
     // Initialise called when editor is loaded.
     [InitializeOnLoadMethod]
     static void Initialise()
@@ -102,41 +135,6 @@ public static class FolderStructureManager
 
         return null; 
     }
-
-
-    public static List<FolderNode> DefaultFolderStructure { get; private set; } = new List<FolderNode>()
-    {
-        new FolderNode { DisplayName = "Assets", Path = "Assets/", Children = new List<FolderNode>()
-        {
-              new FolderNode { DisplayName = "Art", Path = "Assets/Art",  Children = new List<FolderNode>()
-              {
-                  new FolderNode { DisplayName = "Materials", Path = "Assets/Art/Materials",  AssociatedExtensions = new List<string> { ".mat" } },
-                  new FolderNode { DisplayName = "Models", Path = "Assets/Art/Models",  AssociatedExtensions = new List<string> { ".fbx", ".obj" }},
-                  new FolderNode { DisplayName = "Textures", Path = "Assets/Art/Textures", AssociatedExtensions = new List<string> { ".png", ".jpg", ".jpeg", ".tga", ".psd", ".tiff" }  }
-              }},
-              new FolderNode { DisplayName = "Audio", Path = "Assets/Audio", Children= new List<FolderNode>()
-              {
-                  new FolderNode {DisplayName ="Music", Path = "Assets/Audio/Music",  AssociatedExtensions = new List<string> { ".mp3", ".ogg" }},
-                  new FolderNode {DisplayName ="Sound", Path = "Assets/Audio/Sound", AssociatedExtensions = new List<string> { ".wav" } }
-              }},
-              new FolderNode { DisplayName = "Code", Path = "Assets/Code" , Children = new List < FolderNode >()
-              {
-                  new FolderNode {DisplayName ="Scripts", Path = "Assets/Code/Scripts", AssociatedExtensions = new List<string> { ".cs" }},
-                  new FolderNode {DisplayName = "Shaders", Path = "Assets/Code/Shaders", AssociatedExtensions = new List<string> { ".shader", ".cginc" }}
-              }},
-              new FolderNode { DisplayName = "Docs", Path = "Assets/Docs" },
-              new FolderNode { DisplayName = "Level", Path = "Assets/Level", Children = new List < FolderNode >()
-              {
-                  new FolderNode {DisplayName = "Prefabs", Path = "Assets/Level/Prefabs", AssociatedExtensions = new List<string> { ".prefab" }},
-                  new FolderNode {DisplayName = "Scenes", Path = "Assets/Level/Scenes", AssociatedExtensions = new List<string> { ".unity" }},
-                  new FolderNode {DisplayName = "UI", Path = "Assets/Level/UI"},
-
-              }}
-        }
-       }
-    };
-
-
 
 }
 

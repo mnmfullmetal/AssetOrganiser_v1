@@ -33,7 +33,19 @@ public class AssetOrganiserEditor : EditorWindow
             var label = element as Label;
             label.text = (folderTree.GetItemDataForIndex<FolderNode>(index)).DisplayName;
         };
+
+        var addFolderButton = rootVisualElement.Q<Button>("AddFolderButton");
+        if (addFolderButton != null)
+        {
+            addFolderButton.SetEnabled(false);
+
+            addFolderButton.clicked += () => Debug.Log("Add Folder Button Clicked!");
+        }
+
+        
     }
+
+
 
     private List<TreeViewItemData<FolderNode>> BuildTreeViewData(List<FolderNode> folderNodes)
     {

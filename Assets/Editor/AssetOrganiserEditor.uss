@@ -3,3 +3,7 @@
     -unity-font-style: bold;
     color: rgb(68, 138, 255);
 }
+
+.unity-base-text-field__input {
+    background-color: rgb(242, 242, 242);
+}

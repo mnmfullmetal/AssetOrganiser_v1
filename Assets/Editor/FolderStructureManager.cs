@@ -60,12 +60,14 @@ public static class FolderStructureManager
 
     private static void EnsureFolderExists(FolderNode node)
     {
+        // Ensure that the folders being created are within root folder "assets"
         if (string.IsNullOrEmpty(node.Path) || !node.Path.StartsWith("Assets/"))
         {
             Debug.LogWarning($"Skipping folder creation for invalid path: '{node.Path}' (Node: {node.DisplayName})");
             return;
         }
 
+        // Check that the folder being created does not already exist
         if (!Directory.Exists(node.Path))
         {
             try
@@ -73,9 +75,10 @@ public static class FolderStructureManager
                 string parentPath = Path.GetDirectoryName(node.Path);
                 string folderName = Path.GetFileName(node.Path);
 
-                // Check if parent path is valid before creating
+                // Check if parent path and the newfolder name exist before creating
                 if (!string.IsNullOrEmpty(parentPath) && !string.IsNullOrEmpty(folderName))
                 {
+                    // Get GUID and check if a folder was created sucessfully. 
                     string guid = AssetDatabase.CreateFolder(parentPath, folderName);
                     if (!string.IsNullOrEmpty(guid))
                     {
@@ -97,7 +100,7 @@ public static class FolderStructureManager
             }
         }
 
-        // Recursively process children
+        // Recursively process children folders
         if (node.Children != null && node.Children.Count > 0)
         {
             foreach (var childNode in node.Children)
@@ -107,6 +110,7 @@ public static class FolderStructureManager
         }
     }
 
+    // Find target path for file to be moved to, based on the file extension and the folder associated by that extension
     public static string FindTargetPathForExtension(string extension, List<FolderNode> nodesToSearch)
     {
         if (string.IsNullOrEmpty(extension) || nodesToSearch == null)
@@ -116,15 +120,14 @@ public static class FolderStructureManager
 
         foreach (var node in nodesToSearch)
         {
-        
             if (node.AssociatedExtensions != null && node.AssociatedExtensions.Contains(extension))
             {
                 return node.Path; 
             }
 
-            
             if (node.Children != null && node.Children.Count > 0)
             {
+                // Recursively search for target path
                 string pathInChildren = FindTargetPathForExtension(extension, node.Children);
                 if (pathInChildren != null)
                 {
@@ -134,6 +137,39 @@ public static class FolderStructureManager
         }
 
         return null; 
+    }
+
+    // Deep copy method of copying the immutable saved and default presets for the folder structure. 
+    public static FolderNode CloneFolderNode(FolderNode originalNode)
+    {
+        if (originalNode == null)
+        {
+            return null;
+        }
+
+        var copyNode = new FolderNode();
+        copyNode.DisplayName = originalNode.DisplayName;
+        copyNode.Path = originalNode.Path;
+
+        if(originalNode.AssociatedExtensions == null)
+        {
+            copyNode.AssociatedExtensions = new List<string>();
+        }
+        else
+        {
+            copyNode.AssociatedExtensions = new List<string>(originalNode.AssociatedExtensions);
+
+        }
+
+        if(originalNode.Children != null && originalNode.Children.Count > 0)
+        {
+            foreach (var child in originalNode.Children)
+            {
+                copyNode.Children.Add(CloneFolderNode(child));
+            }
+        }
+
+        return copyNode;
     }
 
 }

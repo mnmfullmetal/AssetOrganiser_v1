@@ -11,31 +11,27 @@ public class AssetImportOrganiser : AssetPostprocessor
     {
         foreach (string assetPath in importedAssets)
         {
-            // Editor folder exclusion
+            // Exclude Files in Editor folder
             if (assetPath.StartsWith("Assets/Editor/"))
             {
                 continue;
             }
-
-           
+            
+            // Get file extension of processed assets
             string extension = Path.GetExtension(assetPath)?.ToLowerInvariant();
 
             if (!string.IsNullOrEmpty(extension))
             {
-                // Instead of checking AssetFolderMap...
-                // Search the DEFINED structure for the target path.
-                // Later, you might get the 'active' structure if you have presets.
                 string destinationFolder = FolderStructureManager.FindTargetPathForExtension( extension, FolderStructureManager.DefaultFolderStructure);
 
                 if (!string.IsNullOrEmpty(destinationFolder))
                 {
-                    // Schedule the move using the path found from FolderNode structure
-                    string currentAssetPath = assetPath; // Capture loop variable for the lambda
+                    // Schedule moving asset to target path 
+                    string currentAssetPath = assetPath; 
                     EditorApplication.delayCall += () => MoveAssetToFolder(currentAssetPath, destinationFolder);
                 }
                 else
                 {
-                    // No folder found in the structure definition for this extension
                     Debug.Log($"No defined folder found in structure for extension: {extension} (Asset: {assetPath})");
                 }              
             }          
@@ -44,6 +40,7 @@ public class AssetImportOrganiser : AssetPostprocessor
 
     private static void MoveAssetToFolder(string assetPath, string destinationFolder)
     {
+        // Create path for asset to move to
         string newPath = Path.Combine(destinationFolder, Path.GetFileName(assetPath));
 
         if (!File.Exists(assetPath))
@@ -51,9 +48,9 @@ public class AssetImportOrganiser : AssetPostprocessor
             return; 
         }
 
+        //  Create paths normalised to Unity path structure
         string fileName = Path.GetFileName(assetPath);
         string targetPath = Path.Combine(destinationFolder, fileName).Replace('\\', '/');
-
         string normalizedAssetPath = Path.GetFullPath(assetPath).Replace('\\', '/');
         string normalizedTargetPath = Path.GetFullPath(targetPath).Replace('\\', '/');
 
@@ -64,6 +61,7 @@ public class AssetImportOrganiser : AssetPostprocessor
             return; 
         }
 
+        // Handle event of identical file paths
         if (File.Exists(newPath))
         {
             string uniquePath = AssetDatabase.GenerateUniqueAssetPath(newPath);
@@ -71,6 +69,7 @@ public class AssetImportOrganiser : AssetPostprocessor
             newPath = uniquePath;
         }
 
+        // Move asset from its current path to the newly defined path
         string moveResult = AssetDatabase.MoveAsset(assetPath, newPath);
 
         if (string.IsNullOrEmpty(moveResult))

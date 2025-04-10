@@ -172,5 +172,37 @@ public static class FolderStructureManager
         return copyNode;
     }
 
+    // Search for the parent of a folder, used for deletion of nodes.
+    public static FolderNode FindParentNode (List<FolderNode> nodesToSearch, FolderNode childNode)
+    {
+        foreach( var potentialParent in nodesToSearch)
+        {
+            if (potentialParent != null)
+            {
+                Debug.Log($"Checking if '{potentialParent.DisplayName}' children list contains '{childNode.DisplayName}'. Result: {potentialParent.Children.Contains(childNode)}");
+
+                // Check if node exists as child of the potential parent node
+                if (potentialParent.Children.Contains(childNode))
+                {
+                    return potentialParent;
+                }
+
+                // If the potential parent doesnt contain the child, check the potential parent for children
+                else if (potentialParent.Children.Count > 0)
+                {
+                    // Recursively search the children, or "subparents" of the potential parent 
+                    var potentialSubParent = FindParentNode(potentialParent.Children, childNode);
+                    if (potentialSubParent != null)
+                    {
+                        return potentialSubParent;
+                    }
+                }
+            }
+          
+        }
+        return null;
+
+    }
+
 }
 

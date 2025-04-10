@@ -6,7 +6,6 @@ using System.IO;
 
 public class AssetImportOrganiser : AssetPostprocessor
 {
-
     private static void OnPostprocessAllAssets(string[] importedAssets, string[] deletedAssets, string[] movedAssets, string[] movedFromAssetPaths)
     {
         foreach (string assetPath in importedAssets)

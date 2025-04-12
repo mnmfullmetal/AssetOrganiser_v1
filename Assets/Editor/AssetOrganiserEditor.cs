@@ -3,12 +3,15 @@ using UnityEditor;
 using UnityEngine;
 using UnityEngine.UIElements;
 using System.IO;
+using Unity.Plastic.Newtonsoft.Json;
+using System.Linq;
 
 
 public class AssetOrganiserEditor : EditorWindow
 {
     private List<FolderNode> workingPresetCopy;
-   
+    private static readonly char[] invalidFileNameChars = Path.GetInvalidFileNameChars();
+
     [MenuItem("Window/AssetOrganiserEditor")]
     public static void DisplayWindow()
     {
@@ -50,7 +53,6 @@ public class AssetOrganiserEditor : EditorWindow
         var addFolderText = rootVisualElement.Q<TextField>("AddFolderTextField");
         if (addFolderButton != null && addFolderText != null)
         {
-            // Ensure it STARTS disabled, matching the initial empty text field
             addFolderButton.SetEnabled(false);
 
             addFolderText.RegisterValueChangedCallback(evt =>
@@ -94,50 +96,103 @@ public class AssetOrganiserEditor : EditorWindow
         }
 
         var deleteFolderButton = rootVisualElement.Q<Button>("RemoveFolderButton");
-        deleteFolderButton.clicked += () =>
+        if (deleteFolderButton != null)
         {
-            var folderToDelete = folderTree.selectedItem as FolderNode;
-            if (folderToDelete == null || folderToDelete.Path == "Assets/")
-            {
-                return;
-            }
+            deleteFolderButton.SetEnabled(false);
 
-            bool deleted = false;
-            if (workingPresetCopy.Remove(folderToDelete))
-            {
-                deleted = true;
-            }
-            else
-            {
-                var parentNode = FolderStructureManager.FindParentNode(workingPresetCopy, folderToDelete);
-                if (parentNode != null)
+            folderTree.selectionChanged += (evt => 
+            { 
+                var selection = folderTree.selectedItem as FolderNode;
+                if (selection == null || selection.Path == "Assets/")
                 {
-                    if (parentNode.Children.Remove(folderToDelete))
-                    {
-                        deleted = true;
-                    }
-                    else
-                    {
-                        Debug.LogError("Failed to remove child from parent list, though parent was found.");
-                    }
+                    deleteFolderButton.SetEnabled(false);
                 }
                 else
                 {
-                    Debug.LogError($"Could not find parent for node '{folderToDelete.DisplayName}' during deletion attempt.");
+                    deleteFolderButton.SetEnabled(true);
+                }
+            });
+
+            deleteFolderButton.clicked += () =>
+            {
+                var folderToDelete = folderTree.selectedItem as FolderNode;
+                if (folderToDelete == null || folderToDelete.Path == "Assets/")
+                {
                     return;
                 }
 
-            }
+                bool deleted = false;
+                if (workingPresetCopy.Remove(folderToDelete))
+                {
+                    deleted = true;
+                }
+                else
+                {
+                    var parentNode = FolderStructureManager.FindParentNode(workingPresetCopy, folderToDelete);
+                    if (parentNode != null)
+                    {
+                        if (parentNode.Children.Remove(folderToDelete))
+                        {
+                            deleted = true;
+                        }
+                        else
+                        {
+                            Debug.LogError("Failed to remove child from parent list, though parent was found.");
+                        }
+                    }
+                    else
+                    {
+                        Debug.LogError($"Could not find parent for node '{folderToDelete.DisplayName}' during deletion attempt.");
+                        return;
+                    }
+                }
 
-            if (deleted)
+                if (deleted)
+                {
+                    List<TreeViewItemData<FolderNode>> updatedRootItems = BuildTreeViewData(workingPresetCopy);
+                    folderTree.SetRootItems(updatedRootItems);
+                    folderTree.Rebuild();
+                }
+            };
+        }
+
+        var savePresetButton = rootVisualElement.Q<Button>("SavePresetButton");
+        var savePresetText = rootVisualElement.Q<TextField>("SavePresetTextField");
+        if(savePresetButton != null && savePresetText != null)
+        {
+            savePresetButton.clicked += () =>
             {
-                List<TreeViewItemData<FolderNode>> updatedRootItems = BuildTreeViewData(workingPresetCopy);
-                folderTree.SetRootItems(updatedRootItems);
-                folderTree.Rebuild();
-            }
+                var presetName = savePresetText.value;
+                
+                if (string.IsNullOrWhiteSpace(presetName) || presetName.IndexOfAny(invalidFileNameChars) != -1)
+                {
+                    Debug.LogWarning($"Invalid Preset Name: '{presetName}'. Name cannot be empty, whitespace, or contain invalid characters (e.g., / \\ : * ? \" < > |).");
+                    return;
 
-        };
+                }
+                
+                var saveDirectory = "ProjectSettings/AssetOrganiserPresets";
+                if (!Directory.Exists(saveDirectory))
+                {
+                   Directory.CreateDirectory(saveDirectory);
+                }
+                var savePath = Path.Combine(saveDirectory, presetName).Replace("\\","/");
+                savePath = savePath + ".json";
 
+                try
+                {
+                    var jsonData = JsonUtility.ToJson(workingPresetCopy, true);
+                    File.WriteAllText(savePath, jsonData);
+                    EditorUtility.DisplayDialog("Save succesful", "Preset saved succesfully" , "OK");
+                }
+                catch (System.Exception e)
+                {
+                    Debug.LogError($"Failed to save preset '{presetName}'. An unexpected error occurred: {e.Message}");
+                    EditorUtility.DisplayDialog("Save Error", $"Failed to save preset '{presetName}'.\nError: {e.Message}", "OK");
+                }
+
+            };
+        }
     }
 
     private List<TreeViewItemData<FolderNode>> BuildTreeViewData(List<FolderNode> folderNodes)

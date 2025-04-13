@@ -6,6 +6,7 @@ using System.IO;
 using Unity.Plastic.Newtonsoft.Json;
 using System.Linq;
 using System;
+using System.Net.WebSockets;
 
 
 public class AssetOrganiserEditor : EditorWindow
@@ -18,7 +19,7 @@ public class AssetOrganiserEditor : EditorWindow
     }
 
     private List<FolderNode> workingPresetCopy;
-    private DropdownField loadPresetDropdown;
+    private DropdownField presetDropdown;
     private static readonly char[] invalidFileNameChars = Path.GetInvalidFileNameChars();
 
     [MenuItem("Window/AssetOrganiserEditor")]
@@ -59,14 +60,14 @@ public class AssetOrganiserEditor : EditorWindow
 
         // Query for the "Load Preset" button and its dropdownfield of saved presets. 
         var loadPresetButton = rootVisualElement.Q<Button>("LoadPresetButton");
-        loadPresetDropdown = rootVisualElement.Q<DropdownField>("LoadPresetDropdown");
+        presetDropdown = rootVisualElement.Q<DropdownField>("LoadPresetDropdown");
 
         // Create dropdown choices from saved presets
         RefreshPresetDropdown();
 
         loadPresetButton.clicked += () =>
         {
-            var selectedPreset = loadPresetDropdown.value;
+            var selectedPreset = presetDropdown.value;
             if (string.IsNullOrEmpty(selectedPreset))
             {
                 Debug.LogWarning("No preset selected");
@@ -108,11 +109,11 @@ public class AssetOrganiserEditor : EditorWindow
                 }
                 else
                 {
-                    throw new System.Exception("Preset file might be corrupted or in an invalid format.");
+                    throw new Exception("Preset file might be corrupted or in an invalid format.");
                 }
 
             }
-            catch (System.Exception e)
+            catch (Exception e)
             {
                 // Log a detailed error to the Unity Console for debugging
                 Debug.LogError($"Failed to load preset '{selectedPreset}' from '{loadPath}'. An unexpected error occurred: {e.Message}\nStack Trace: {e.StackTrace}");
@@ -123,6 +124,8 @@ public class AssetOrganiserEditor : EditorWindow
                     $"Failed to load preset '{selectedPreset}'.\n\nThe file might be corrupted, unreadable, or not in the expected format.\n\nError details: {e.Message}",
                     "OK");
             }
+
+            presetDropdown.index = (presetDropdown.choices.Count > 0) ? 0 : -1;
 
 
         };
@@ -264,7 +267,7 @@ public class AssetOrganiserEditor : EditorWindow
                     EditorUtility.DisplayDialog("Save succesful", "Preset saved succesfully" , "OK");
                     RefreshPresetDropdown();
                 }
-                catch (System.Exception e)
+                catch (Exception e)
                 {
                     Debug.LogError($"Failed to save preset '{presetName}'. An unexpected error occurred: {e.Message}");
                     EditorUtility.DisplayDialog("Save Error", $"Failed to save preset '{presetName}'.\nError: {e.Message}", "OK");
@@ -275,6 +278,46 @@ public class AssetOrganiserEditor : EditorWindow
         }
 
         var deletePresetButton = rootVisualElement.Q<Button>("DeletePresetButton");
+        if (deletePresetButton != null )
+        {
+            deletePresetButton.clicked += () =>
+            {
+                var selectedItem = presetDropdown.value;
+                if (string.IsNullOrEmpty(selectedItem))
+                {
+                    return;
+                }
+
+                var rootPresetFolder = FolderStructureManager.PresetSaveDirectory;
+                var fileToDelete = Path.Combine(rootPresetFolder, selectedItem).Replace("\\", "/");
+                fileToDelete = fileToDelete + ".json";
+                if (!File.Exists(fileToDelete))
+                {
+                    return;
+                }
+
+                try
+                {
+                    File.Delete(fileToDelete);
+                    EditorUtility.DisplayDialog("Deletion Successful", $"File '{fileToDelete}' Deleted.", "OK");
+
+                }
+                catch ( Exception e )
+                {
+                    Debug.LogError($"Failed to delete file '{fileToDelete}'. An unexpected error occurred: {e.Message}");
+
+                }
+
+                RefreshPresetDropdown();
+                presetDropdown.index = (presetDropdown.choices.Count > 0) ? 0 : -1;
+
+
+
+
+
+            };
+        }
+      
        
     }
 
@@ -303,7 +346,7 @@ public class AssetOrganiserEditor : EditorWindow
 
     private void RefreshPresetDropdown()
     {
-        if (loadPresetDropdown == null) return;
+        if (presetDropdown == null) return;
 
         var presetDirectory = FolderStructureManager.PresetSaveDirectory;
         List<string> presetNames = new List<string>();
@@ -328,7 +371,7 @@ public class AssetOrganiserEditor : EditorWindow
             presetNames.Clear();
         }
 
-        loadPresetDropdown.choices = presetNames;
+        presetDropdown.choices = presetNames;
         Debug.Log($"Assigning {presetNames.Count} names to dropdown: {string.Join(", ", presetNames)}");
 
     }

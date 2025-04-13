@@ -5,12 +5,13 @@ using UnityEngine.UIElements;
 using System.IO;
 using Unity.Plastic.Newtonsoft.Json;
 using System.Linq;
+using System;
 
 
 public class AssetOrganiserEditor : EditorWindow
 {
     // wrapper for correct json deserialisation
-    [System.Serializable]
+    [Serializable]
     private class FolderNodeListWrapper
     {
         public List<FolderNode> RootNodes = new List<FolderNode>();
@@ -83,6 +84,7 @@ public class AssetOrganiserEditor : EditorWindow
                 return;
             }
 
+
             try
             {
                 var jsonData = File.ReadAllText(loadPath);
@@ -95,23 +97,20 @@ public class AssetOrganiserEditor : EditorWindow
 
                 if (loadedPresetList != null)
                 {
-                    if (loadedWrapper != null && loadedWrapper.RootNodes != null)
-                    {
-                        workingPresetCopy = DeepCloneList(loadedWrapper.RootNodes); 
+                    workingPresetCopy = DeepCloneList(loadedWrapper.RootNodes);
 
-                        // Refresh the TreeView with the newly loaded data
-                        List<TreeViewItemData<FolderNode>> updatedRootItems = BuildTreeViewData(workingPresetCopy);
-                        folderTree.SetRootItems(updatedRootItems);
+                    // Refresh the TreeView with the newly loaded data
+                    List<TreeViewItemData<FolderNode>> updatedRootItems = BuildTreeViewData(workingPresetCopy);
+                    folderTree.SetRootItems(updatedRootItems);
 
-                        EditorUtility.DisplayDialog("Load Successful", $"Preset '{selectedPreset}' loaded.", "OK");
-                        Debug.Log($"Preset '{selectedPreset}' loaded successfully.");
-                    }
-                    else
-                    {
-                        throw new System.Exception("Preset file might be corrupted or in an invalid format.");
-                    }
+                    EditorUtility.DisplayDialog("Load Successful", $"Preset '{selectedPreset}' loaded.", "OK");
+                    Debug.Log($"Preset '{selectedPreset}' loaded successfully.");
                 }
-               
+                else
+                {
+                    throw new System.Exception("Preset file might be corrupted or in an invalid format.");
+                }
+
             }
             catch (System.Exception e)
             {
@@ -263,6 +262,7 @@ public class AssetOrganiserEditor : EditorWindow
                     var jsonData = JsonUtility.ToJson(wrapper, true);
                     File.WriteAllText(savePath, jsonData);
                     EditorUtility.DisplayDialog("Save succesful", "Preset saved succesfully" , "OK");
+                    RefreshPresetDropdown();
                 }
                 catch (System.Exception e)
                 {
@@ -273,6 +273,9 @@ public class AssetOrganiserEditor : EditorWindow
                 savePresetText.value = string.Empty;
             };
         }
+
+        var deletePresetButton = rootVisualElement.Q<Button>("DeletePresetButton");
+       
     }
 
     private List<TreeViewItemData<FolderNode>> BuildTreeViewData(List<FolderNode> folderNodes)
@@ -307,10 +310,12 @@ public class AssetOrganiserEditor : EditorWindow
         try
         {
             var filePaths = Directory.GetFiles(presetDirectory, "*.json");
+            Debug.Log($"Found {filePaths.Length} *.json files.");
 
             foreach (var path in filePaths)
             {
                 var presetName = Path.GetFileNameWithoutExtension(path);
+                Debug.Log($"-- Extracted name: {presetName}");
                 presetNames.Add(presetName);
 
             }
@@ -324,13 +329,13 @@ public class AssetOrganiserEditor : EditorWindow
         }
 
         loadPresetDropdown.choices = presetNames;
+        Debug.Log($"Assigning {presetNames.Count} names to dropdown: {string.Join(", ", presetNames)}");
 
-        loadPresetDropdown.index = presetNames.Count > 0 ? 0 : -1;
     }
 
     private List<FolderNode> DeepCloneList(List<FolderNode> originalList)
     {
-        if (originalList == null) return null; // Or return new List<FolderNode>();
+        if (originalList == null) return null; 
 
         List<FolderNode> newList = new List<FolderNode>();
         foreach (var node in originalList)

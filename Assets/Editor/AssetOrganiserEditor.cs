@@ -9,7 +9,15 @@ using System.Linq;
 
 public class AssetOrganiserEditor : EditorWindow
 {
+    // wrapper for correct json deserialisation
+    [System.Serializable]
+    private class FolderNodeListWrapper
+    {
+        public List<FolderNode> RootNodes = new List<FolderNode>();
+    }
+
     private List<FolderNode> workingPresetCopy;
+    private DropdownField loadPresetDropdown;
     private static readonly char[] invalidFileNameChars = Path.GetInvalidFileNameChars();
 
     [MenuItem("Window/AssetOrganiserEditor")]
@@ -48,6 +56,79 @@ public class AssetOrganiserEditor : EditorWindow
             label.text = (folderTree.GetItemDataForIndex<FolderNode>(index)).DisplayName;
         };
 
+        // Query for the "Load Preset" button and its dropdownfield of saved presets. 
+        var loadPresetButton = rootVisualElement.Q<Button>("LoadPresetButton");
+        loadPresetDropdown = rootVisualElement.Q<DropdownField>("LoadPresetDropdown");
+
+        // Create dropdown choices from saved presets
+        RefreshPresetDropdown();
+
+        loadPresetButton.clicked += () =>
+        {
+            var selectedPreset = loadPresetDropdown.value;
+            if (string.IsNullOrEmpty(selectedPreset))
+            {
+                Debug.LogWarning("No preset selected");
+                return;
+            }
+
+            var rootSaveDirectory = FolderStructureManager.PresetSaveDirectory;
+            var loadPath = Path.Combine(rootSaveDirectory, selectedPreset).Replace('\\', '/');
+            loadPath = loadPath + ".json";
+            if (!File.Exists(loadPath))
+            {
+                EditorUtility.DisplayDialog("Load Error", $"Preset file '{selectedPreset}.json' not found.", "OK");
+
+                RefreshPresetDropdown(); 
+                return;
+            }
+
+            try
+            {
+                var jsonData = File.ReadAllText(loadPath);
+                FolderNodeListWrapper loadedWrapper = JsonUtility.FromJson<FolderNodeListWrapper>(jsonData);
+                List<FolderNode> loadedPresetList = null;
+                if (loadedWrapper != null)
+                {
+                    loadedPresetList = loadedWrapper.RootNodes;
+                }
+
+                if (loadedPresetList != null)
+                {
+                    if (loadedWrapper != null && loadedWrapper.RootNodes != null)
+                    {
+                        workingPresetCopy = DeepCloneList(loadedWrapper.RootNodes); 
+
+                        // Refresh the TreeView with the newly loaded data
+                        List<TreeViewItemData<FolderNode>> updatedRootItems = BuildTreeViewData(workingPresetCopy);
+                        folderTree.SetRootItems(updatedRootItems);
+
+                        EditorUtility.DisplayDialog("Load Successful", $"Preset '{selectedPreset}' loaded.", "OK");
+                        Debug.Log($"Preset '{selectedPreset}' loaded successfully.");
+                    }
+                    else
+                    {
+                        throw new System.Exception("Preset file might be corrupted or in an invalid format.");
+                    }
+                }
+               
+            }
+            catch (System.Exception e)
+            {
+                // Log a detailed error to the Unity Console for debugging
+                Debug.LogError($"Failed to load preset '{selectedPreset}' from '{loadPath}'. An unexpected error occurred: {e.Message}\nStack Trace: {e.StackTrace}");
+
+                
+                EditorUtility.DisplayDialog(
+                    "Load Preset Error",
+                    $"Failed to load preset '{selectedPreset}'.\n\nThe file might be corrupted, unreadable, or not in the expected format.\n\nError details: {e.Message}",
+                    "OK");
+            }
+
+
+        };
+
+        
         //Query for "Add folder" button and textfield
         var addFolderButton = rootVisualElement.Q<Button>("AddFolderButton");
         var addFolderText = rootVisualElement.Q<TextField>("AddFolderTextField");
@@ -171,17 +252,15 @@ public class AssetOrganiserEditor : EditorWindow
 
                 }
                 
-                var saveDirectory = "ProjectSettings/AssetOrganiserPresets";
-                if (!Directory.Exists(saveDirectory))
-                {
-                   Directory.CreateDirectory(saveDirectory);
-                }
+                var saveDirectory = FolderStructureManager.PresetSaveDirectory;
                 var savePath = Path.Combine(saveDirectory, presetName).Replace("\\","/");
                 savePath = savePath + ".json";
 
                 try
                 {
-                    var jsonData = JsonUtility.ToJson(workingPresetCopy, true);
+                    var wrapper = new FolderNodeListWrapper();
+                    wrapper.RootNodes = workingPresetCopy; 
+                    var jsonData = JsonUtility.ToJson(wrapper, true);
                     File.WriteAllText(savePath, jsonData);
                     EditorUtility.DisplayDialog("Save succesful", "Preset saved succesfully" , "OK");
                 }
@@ -191,6 +270,7 @@ public class AssetOrganiserEditor : EditorWindow
                     EditorUtility.DisplayDialog("Save Error", $"Failed to save preset '{presetName}'.\nError: {e.Message}", "OK");
                 }
 
+                savePresetText.value = string.Empty;
             };
         }
     }
@@ -215,5 +295,53 @@ public class AssetOrganiserEditor : EditorWindow
         }
 
         return treeViewItems;
+    }
+
+
+    private void RefreshPresetDropdown()
+    {
+        if (loadPresetDropdown == null) return;
+
+        var presetDirectory = FolderStructureManager.PresetSaveDirectory;
+        List<string> presetNames = new List<string>();
+        try
+        {
+            var filePaths = Directory.GetFiles(presetDirectory, "*.json");
+
+            foreach (var path in filePaths)
+            {
+                var presetName = Path.GetFileNameWithoutExtension(path);
+                presetNames.Add(presetName);
+
+            }
+
+        }
+        catch (System.Exception ex)
+        {
+            Debug.LogError($"Error reading presets from '{presetDirectory}': {ex.Message}");
+        
+            presetNames.Clear();
+        }
+
+        loadPresetDropdown.choices = presetNames;
+
+        loadPresetDropdown.index = presetNames.Count > 0 ? 0 : -1;
+    }
+
+    private List<FolderNode> DeepCloneList(List<FolderNode> originalList)
+    {
+        if (originalList == null) return null; // Or return new List<FolderNode>();
+
+        List<FolderNode> newList = new List<FolderNode>();
+        foreach (var node in originalList)
+        {
+            // Use the static method from FolderStructureManager to clone each node
+            FolderNode clonedNode = FolderStructureManager.CloneFolderNode(node);
+            if (clonedNode != null)
+            {
+                newList.Add(clonedNode);
+            }
+        }
+        return newList;
     }
 }

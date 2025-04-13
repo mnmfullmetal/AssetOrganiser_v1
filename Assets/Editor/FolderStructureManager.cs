@@ -6,6 +6,8 @@ using UnityEditor;
 
 public static class FolderStructureManager 
 {
+    public static string PresetSaveDirectory => "ProjectSettings/AssetOrganiserPresets";
+
     //Default folder structure following unity project organisation best practices.
     public static List<FolderNode> DefaultFolderStructure { get; private set; } = new List<FolderNode>()
     {
@@ -43,7 +45,13 @@ public static class FolderStructureManager
     [InitializeOnLoadMethod]
     static void Initialise()
     {
-       ApplyFolderStructure(DefaultFolderStructure);
+        ApplyFolderStructure(DefaultFolderStructure);
+
+        if(PresetSaveDirectory != null)
+        {
+            Directory.CreateDirectory(PresetSaveDirectory);
+
+        }
     }
 
     private static void ApplyFolderStructure(List<FolderNode> structureToApply)

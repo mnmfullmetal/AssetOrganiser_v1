@@ -3,10 +3,7 @@ using UnityEditor;
 using UnityEngine;
 using UnityEngine.UIElements;
 using System.IO;
-using Unity.Plastic.Newtonsoft.Json;
-using System.Linq;
 using System;
-using System.Net.WebSockets;
 
 
 public class AssetOrganiserEditor : EditorWindow
@@ -125,8 +122,7 @@ public class AssetOrganiserEditor : EditorWindow
                     "OK");
             }
 
-            presetDropdown.index = (presetDropdown.choices.Count > 0) ? 0 : -1;
-
+            RefreshPresetDropdown();
 
         };
 
@@ -309,11 +305,6 @@ public class AssetOrganiserEditor : EditorWindow
                 }
 
                 RefreshPresetDropdown();
-                presetDropdown.index = (presetDropdown.choices.Count > 0) ? 0 : -1;
-
-
-
-
 
             };
         }
@@ -364,7 +355,7 @@ public class AssetOrganiserEditor : EditorWindow
             }
 
         }
-        catch (System.Exception ex)
+        catch (Exception ex)
         {
             Debug.LogError($"Error reading presets from '{presetDirectory}': {ex.Message}");
         
@@ -372,6 +363,8 @@ public class AssetOrganiserEditor : EditorWindow
         }
 
         presetDropdown.choices = presetNames;
+        presetDropdown.index = presetNames.Count > 0 ? 0 : -1;
+        presetDropdown.value = string.Empty;
         Debug.Log($"Assigning {presetNames.Count} names to dropdown: {string.Join(", ", presetNames)}");
 
     }

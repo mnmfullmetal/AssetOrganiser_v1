@@ -4,6 +4,7 @@ using UnityEngine;
 using UnityEngine.UIElements;
 using System.IO;
 using System;
+using Unity.VisualScripting;
 
 
 public class AssetOrganiserEditor : EditorWindow
@@ -37,11 +38,7 @@ public class AssetOrganiserEditor : EditorWindow
         var folderTree = rootVisualElement.Q<TreeView>("FolderStructure");
 
         // Create copy of folder structure to edit and work with
-        workingPresetCopy = new List<FolderNode>();
-        foreach( var folder in FolderStructureManager.DefaultFolderStructure)
-        {
-            workingPresetCopy.Add(FolderStructureManager.CloneFolderNode(folder));
-        }
+        workingPresetCopy = DeepCloneList(FolderStructureManager.DefaultFolderStructure);
 
         // Build the TreeViewItemData list
         List<TreeViewItemData<FolderNode>> rootItems = BuildTreeViewData(workingPresetCopy);
@@ -54,6 +51,57 @@ public class AssetOrganiserEditor : EditorWindow
             var label = element as Label;
             label.text = (folderTree.GetItemDataForIndex<FolderNode>(index)).DisplayName;
         };
+
+        // Query for the AssociatedExtensionsPanel and its elements.
+        var associatedExtensionsPanel = rootVisualElement.Q<VisualElement>("AssociatedExtensionsPanel");
+        var associatedExtensionsList = rootVisualElement.Q<ListView>("AssociatedExtensionsList");
+        var addMappingsButton = rootVisualElement.Q<Button>("AddMappingButton");
+        var removeMappingsButton = rootVisualElement.Q<Button>("RemoveMappingButton");
+        if (associatedExtensionsPanel != null && associatedExtensionsList != null && addMappingsButton != null && removeMappingsButton != null)
+        {
+            associatedExtensionsPanel.style.display = DisplayStyle.None;
+
+            // Populate the Associated Extensions list 
+            associatedExtensionsList.makeItem = () => new Label();
+            associatedExtensionsList.bindItem = (element, index) =>
+            {
+                var label = element as Label;
+                if (label != null && associatedExtensionsList.itemsSource != null && index >= 0 && index < associatedExtensionsList.itemsSource.Count)
+                {
+                    label.text = associatedExtensionsList.itemsSource[index] as string ?? "Invalid Data"; 
+                }
+                else if (label != null)
+                {
+                    label.text = "Error binding item"; 
+                }
+            };
+
+            folderTree.selectionChanged += (evt =>
+            {
+                var selection = folderTree.selectedItem as FolderNode;
+                if (selection == null || selection.Path == "Assets/")
+                {
+                    associatedExtensionsPanel.style.display = DisplayStyle.None;
+                }
+                else
+                {
+                    associatedExtensionsPanel.style.display = DisplayStyle.Flex;
+
+                    if (associatedExtensionsList != null)
+                    {
+                    
+                        associatedExtensionsList.itemsSource = selection.AssociatedExtensions ?? new List<string>();
+
+                        associatedExtensionsList.RefreshItems();
+                    }
+
+
+                }
+            });
+
+        }
+
+
 
         // Query for the "Load Preset" button and its dropdownfield of saved presets. 
         var loadPresetButton = rootVisualElement.Q<Button>("LoadPresetButton");
@@ -68,6 +116,17 @@ public class AssetOrganiserEditor : EditorWindow
             if (string.IsNullOrEmpty(selectedPreset))
             {
                 Debug.LogWarning("No preset selected");
+                return;
+            }
+
+            if (selectedPreset == "Default")
+            {
+                workingPresetCopy = DeepCloneList(FolderStructureManager.DefaultFolderStructure);
+
+                List<TreeViewItemData<FolderNode>> updatedRootItems = BuildTreeViewData(workingPresetCopy);
+                folderTree.SetRootItems(updatedRootItems);
+
+                EditorUtility.DisplayDialog("Load Default", "Default structure loaded.", "OK");
                 return;
             }
 
@@ -112,7 +171,6 @@ public class AssetOrganiserEditor : EditorWindow
             }
             catch (Exception e)
             {
-                // Log a detailed error to the Unity Console for debugging
                 Debug.LogError($"Failed to load preset '{selectedPreset}' from '{loadPath}'. An unexpected error occurred: {e.Message}\nStack Trace: {e.StackTrace}");
 
                 
@@ -258,7 +316,7 @@ public class AssetOrganiserEditor : EditorWindow
                 {
                     var wrapper = new FolderNodeListWrapper();
                     wrapper.RootNodes = workingPresetCopy; 
-                    var jsonData = JsonUtility.ToJson(wrapper, true);
+                    var jsonData = EditorJsonUtility.ToJson(wrapper, true);
                     File.WriteAllText(savePath, jsonData);
                     EditorUtility.DisplayDialog("Save succesful", "Preset saved succesfully" , "OK");
                     RefreshPresetDropdown();
@@ -273,6 +331,7 @@ public class AssetOrganiserEditor : EditorWindow
             };
         }
 
+        // Query for the "Delete Preset" button
         var deletePresetButton = rootVisualElement.Q<Button>("DeletePresetButton");
         if (deletePresetButton != null )
         {
@@ -309,9 +368,9 @@ public class AssetOrganiserEditor : EditorWindow
             };
         }
       
-       
     }
 
+    // Helper to recursively create the treeview
     private List<TreeViewItemData<FolderNode>> BuildTreeViewData(List<FolderNode> folderNodes)
     {
         List<TreeViewItemData<FolderNode>> treeViewItems = new List<TreeViewItemData<FolderNode>>();
@@ -335,6 +394,7 @@ public class AssetOrganiserEditor : EditorWindow
     }
 
 
+    // Helper to refresh preset dropdown options 
     private void RefreshPresetDropdown()
     {
         if (presetDropdown == null) return;
@@ -362,12 +422,14 @@ public class AssetOrganiserEditor : EditorWindow
             presetNames.Clear();
         }
 
+        presetNames.Insert(0, "Default");
         presetDropdown.choices = presetNames;
         presetDropdown.index = presetNames.Count > 0 ? 0 : -1;
         presetDropdown.value = string.Empty;
         Debug.Log($"Assigning {presetNames.Count} names to dropdown: {string.Join(", ", presetNames)}");
 
     }
+
 
     private List<FolderNode> DeepCloneList(List<FolderNode> originalList)
     {
@@ -376,7 +438,6 @@ public class AssetOrganiserEditor : EditorWindow
         List<FolderNode> newList = new List<FolderNode>();
         foreach (var node in originalList)
         {
-            // Use the static method from FolderStructureManager to clone each node
             FolderNode clonedNode = FolderStructureManager.CloneFolderNode(node);
             if (clonedNode != null)
             {

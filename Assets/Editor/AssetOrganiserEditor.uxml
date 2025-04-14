@@ -8,8 +8,8 @@
                 <ui:Button enabled="false" text="Add Folder" parse-escape-sequences="true" display-tooltip-when-elided="true" name="AddFolderButton" style="margin-top: 6px; margin-right: 4px; margin-bottom: 6px; margin-left: 4px; align-self: center; align-items: auto; justify-content: space-around; min-width: auto; min-height: auto; max-height: none; max-width: initial; background-color: rgb(149, 149, 149); width: initial;" />
             </ui:VisualElement>
             <ui:Button text="Remove Folder" parse-escape-sequences="true" display-tooltip-when-elided="true" name="RemoveFolderButton" style="margin-top: 6px; margin-right: 4px; margin-bottom: 10px; margin-left: 4px; align-self: stretch; align-items: auto; background-color: rgb(149, 149, 149); flex-direction: row;" />
-            <ui:VisualElement name="AssociatedExtensionsPanel" style="flex-grow: 1; visibility: visible; display: flex; justify-content: center; align-self: auto; min-height: 30%;">
-                <ui:ListView name="AssociatedExtensionsList" show-border="true" header-title="Extension Mapping" show-add-remove-footer="false" style="visibility: visible; justify-content: center; align-items: auto; align-self: auto;" />
+            <ui:VisualElement name="AssociatedExtensionsPanel" style="flex-grow: 1; visibility: visible; display: flex; justify-content: flex-start; align-self: auto; min-height: 30%;">
+                <ui:ListView name="AssociatedExtensionsList" show-border="true" header-title="Extension Mapping" show-add-remove-footer="false" style="visibility: visible; justify-content: flex-start; align-items: stretch; align-self: auto;" />
                 <ui:VisualElement name="MappingButtonsPanel" style="flex-grow: 1; flex-direction: row; align-items: auto; justify-content: space-between; min-height: 20%;">
                     <ui:Button text="Add Mapping" parse-escape-sequences="true" display-tooltip-when-elided="true" name="AddMappingButton" />
                     <ui:Button text="Remove Mapping" parse-escape-sequences="true" display-tooltip-when-elided="true" name="RemoveMappingButton" />

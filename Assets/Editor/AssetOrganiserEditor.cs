@@ -99,6 +99,26 @@ public class AssetOrganiserEditor : EditorWindow
                 }
             });
 
+            removeMappingsButton.clicked += () =>
+            {
+                var mappingToRemove = associatedExtensionsList.selectedItem as string;
+                if (string.IsNullOrEmpty(mappingToRemove))
+                {
+                    Debug.LogError("Selected item in extension list was not a valid string.");
+                    return;
+                }
+
+                var selectedFolder = folderTree.selectedItem as FolderNode;
+                if (selectedFolder == null)
+                {
+                    Debug.LogError("Selected folder not valid");
+                    return;
+                }
+
+                selectedFolder.AssociatedExtensions.Remove(mappingToRemove);
+                associatedExtensionsList.RefreshItems();
+            };
+
         }
 
 

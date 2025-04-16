@@ -70,11 +70,11 @@ public class AssetOrganiserEditor : EditorWindow
                 var label = element as Label;
                 if (label != null && associatedExtensionsList.itemsSource != null && index >= 0 && index < associatedExtensionsList.itemsSource.Count)
                 {
-                    label.text = associatedExtensionsList.itemsSource[index] as string ?? "Invalid Data"; 
+                    label.text = associatedExtensionsList.itemsSource[index] as string ?? "Invalid Data";
                 }
                 else if (label != null)
                 {
-                    label.text = "Error binding item"; 
+                    label.text = "Error binding item";
                 }
             };
 
@@ -91,7 +91,7 @@ public class AssetOrganiserEditor : EditorWindow
 
                     if (associatedExtensionsList != null)
                     {
-                    
+
                         associatedExtensionsList.itemsSource = selection.associatedExtensions ?? new List<string>();
 
                         associatedExtensionsList.RefreshItems();
@@ -136,7 +136,7 @@ public class AssetOrganiserEditor : EditorWindow
                 wnd.titleContent = new GUIContent("Add Mapping");
                 wnd.TargetNode = selectedNode;
 
-                wnd.OnApplyMappings += HandleMappingsApplied; 
+                wnd.OnApplyMappings += HandleMappingsApplied;
             };
 
         }
@@ -177,7 +177,7 @@ public class AssetOrganiserEditor : EditorWindow
             {
                 EditorUtility.DisplayDialog("Load Error", $"Preset file '{selectedPreset}.json' not found.", "OK");
 
-                RefreshPresetDropdown(); 
+                RefreshPresetDropdown();
                 return;
             }
 
@@ -213,7 +213,7 @@ public class AssetOrganiserEditor : EditorWindow
             {
                 Debug.LogError($"Failed to load preset '{selectedPreset}' from '{loadPath}'. An unexpected error occurred: {e.Message}\nStack Trace: {e.StackTrace}");
 
-                
+
                 EditorUtility.DisplayDialog(
                     "Load Preset Error",
                     $"Failed to load preset '{selectedPreset}'.\n\nThe file might be corrupted, unreadable, or not in the expected format.\n\nError details: {e.Message}",
@@ -224,7 +224,7 @@ public class AssetOrganiserEditor : EditorWindow
 
         };
 
-        
+
         //Query for "Add folder" button and textfield
         var addFolderButton = rootVisualElement.Q<Button>("AddFolderButton");
         var addFolderText = rootVisualElement.Q<TextField>("AddFolderTextField");
@@ -253,7 +253,7 @@ public class AssetOrganiserEditor : EditorWindow
                 {
                     return;
                 }
-                 
+
                 var newFolder = new FolderNode();
 
                 string trimmedFolderName = newFolderName.Trim();
@@ -277,8 +277,8 @@ public class AssetOrganiserEditor : EditorWindow
         {
             deleteFolderButton.SetEnabled(false);
 
-            folderTree.selectionChanged += (evt => 
-            { 
+            folderTree.selectionChanged += (evt =>
+            {
                 var selection = folderTree.selectedItem as FolderNode;
                 if (selection == null || selection.path == "Assets/")
                 {
@@ -335,30 +335,30 @@ public class AssetOrganiserEditor : EditorWindow
 
         var savePresetButton = rootVisualElement.Q<Button>("SavePresetButton");
         var savePresetText = rootVisualElement.Q<TextField>("SavePresetTextField");
-        if(savePresetButton != null && savePresetText != null)
+        if (savePresetButton != null && savePresetText != null)
         {
             savePresetButton.clicked += () =>
             {
                 var presetName = savePresetText.value;
-                
+
                 if (string.IsNullOrWhiteSpace(presetName) || presetName.IndexOfAny(FolderStructureManager.invalidFileNameChars) != -1)
                 {
                     Debug.LogWarning($"Invalid Preset Name: '{presetName}'. Name cannot be empty, whitespace, or contain invalid characters (e.g., / \\ : * ? \" < > |).");
                     return;
 
                 }
-                
+
                 var saveDirectory = FolderStructureManager.PresetSaveDirectory;
-                var savePath = Path.Combine(saveDirectory, presetName).Replace("\\","/");
+                var savePath = Path.Combine(saveDirectory, presetName).Replace("\\", "/");
                 savePath = savePath + ".json";
 
                 try
                 {
                     var wrapper = new FolderNodeListWrapper();
-                    wrapper.RootNodes = workingPresetCopy; 
+                    wrapper.RootNodes = workingPresetCopy;
                     var jsonData = EditorJsonUtility.ToJson(wrapper, true);
                     File.WriteAllText(savePath, jsonData);
-                    EditorUtility.DisplayDialog("Save succesful", "Preset saved succesfully" , "OK");
+                    EditorUtility.DisplayDialog("Save succesful", "Preset saved succesfully", "OK");
                     RefreshPresetDropdown();
                 }
                 catch (Exception e)
@@ -373,7 +373,7 @@ public class AssetOrganiserEditor : EditorWindow
 
         // Query for the "Delete Preset" button
         var deletePresetButton = rootVisualElement.Q<Button>("DeletePresetButton");
-        if (deletePresetButton != null )
+        if (deletePresetButton != null)
         {
             deletePresetButton.clicked += () =>
             {
@@ -397,7 +397,7 @@ public class AssetOrganiserEditor : EditorWindow
                     EditorUtility.DisplayDialog("Deletion Successful", $"File '{fileToDelete}' Deleted.", "OK");
 
                 }
-                catch ( Exception e )
+                catch (Exception e)
                 {
                     Debug.LogError($"Failed to delete file '{fileToDelete}'. An unexpected error occurred: {e.Message}");
 
@@ -407,7 +407,21 @@ public class AssetOrganiserEditor : EditorWindow
 
             };
         }
-      
+
+        var applyStructureButton = rootVisualElement.Q<Button>("ApplyFolderStructureButton");
+
+        if (applyStructureButton == null)
+        {
+            // Log error if the button isn't found in your UXML file
+            Debug.LogError("ApplyStructureButton not found in UXML! Cannot attach handler.");
+        }
+        else
+        {
+            // Attach the clicked event to a new handler method
+            applyStructureButton.clicked += HandleApplyStructureClicked;
+        }
+
+
     }
 
     // Helper to recursively create the treeview
@@ -497,8 +511,6 @@ public class AssetOrganiserEditor : EditorWindow
                 return;
             }
 
-          
-
             if (selectedFolder.associatedExtensions.Contains(extensionToAdd))
             {
                 EditorUtility.DisplayDialog("Mapping Error", "extension mapping already exists in this fodler", "OK");
@@ -516,7 +528,56 @@ public class AssetOrganiserEditor : EditorWindow
 
             associatedExtensionsList.RefreshItems();
         }
+    }
 
+    private void HandleApplyStructureClicked()
+    {
+        if (workingPresetCopy == null)
+        {
+            Debug.LogError("Cannot apply structure: No working preset data available.");
+            EditorUtility.DisplayDialog("Error", "Cannot apply structure: No preset data loaded.", "OK");
+            return;
+        }
+       
+        bool confirm = EditorUtility.DisplayDialog(
+             "Confirm Apply Structure", 
+             "This will create any missing folders in your project based on the current structure view.\n" + 
+             "(Note: This process does NOT delete existing folders or files).\n\n" +
+             "Are you sure you want to proceed?",
+             "Apply Structure", 
+             "Cancel");
+        
+         if (!confirm)
+         {
+             return; 
+         }
 
+        try
+        {
+            Debug.Log("Applying folder structure to project...");
+
+            FolderStructureManager.ApplyFolderStructure(workingPresetCopy);
+            
+            Debug.Log("Folder structure applied successfully.");
+            EditorUtility.DisplayDialog(
+                "Success",
+                "Folder structure applied successfully.\n(Missing folders were created).",
+                "OK");
+        }
+        catch (IOException ioEx)
+        {
+            Debug.LogError($"Error applying folder structure (IO Exception): {ioEx.Message}\n{ioEx.StackTrace}");
+            EditorUtility.DisplayDialog("Apply Error", $"Could not apply folder structure due to a file system IO error:\n{ioEx.Message}", "OK");
+        }
+        catch (UnauthorizedAccessException authEx)
+        {
+            Debug.LogError($"Error applying folder structure (Unauthorized Access): {authEx.Message}\n{authEx.StackTrace}");
+            EditorUtility.DisplayDialog("Apply Error", $"Could not apply folder structure due to insufficient permissions:\n{authEx.Message}", "OK");
+        }
+        catch (Exception ex)
+        {
+            Debug.LogError($"An unexpected error occurred while applying folder structure: {ex.Message}\n{ex.StackTrace}");
+            EditorUtility.DisplayDialog("Apply Error", $"An unexpected error occurred:\n{ex.Message}", "OK");
+        }
     }
 }

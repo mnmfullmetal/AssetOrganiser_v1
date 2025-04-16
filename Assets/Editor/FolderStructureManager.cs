@@ -4,6 +4,7 @@ using UnityEngine;
 using System.IO;
 using UnityEditor;
 using System.Xml.Schema;
+using System;
 
 public static class FolderStructureManager 
 {
@@ -56,7 +57,7 @@ public static class FolderStructureManager
         }
     }
 
-    private static void ApplyFolderStructure(List<FolderNode> structureToApply)
+    public static void ApplyFolderStructure(List<FolderNode> structureToApply)
     {
         if (structureToApply == null) return;
 
@@ -248,5 +249,8 @@ public static class FolderStructureManager
         }
         return null;
     }
+
+
+   
 }
 

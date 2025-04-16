@@ -49,7 +49,7 @@ public class AssetOrganiserEditor : EditorWindow
         folderTree.bindItem = (element, index) =>
         {
             var label = element as Label;
-            label.text = (folderTree.GetItemDataForIndex<FolderNode>(index)).DisplayName;
+            label.text = (folderTree.GetItemDataForIndex<FolderNode>(index)).displayName;
         };
 
         // Query for the AssociatedExtensionsPanel and its elements.
@@ -79,7 +79,7 @@ public class AssetOrganiserEditor : EditorWindow
             folderTree.selectionChanged += (evt =>
             {
                 var selection = folderTree.selectedItem as FolderNode;
-                if (selection == null || selection.Path == "Assets/")
+                if (selection == null || selection.path == "Assets/")
                 {
                     associatedExtensionsPanel.style.display = DisplayStyle.None;
                 }
@@ -90,7 +90,7 @@ public class AssetOrganiserEditor : EditorWindow
                     if (associatedExtensionsList != null)
                     {
                     
-                        associatedExtensionsList.itemsSource = selection.AssociatedExtensions ?? new List<string>();
+                        associatedExtensionsList.itemsSource = selection.associatedExtensions ?? new List<string>();
 
                         associatedExtensionsList.RefreshItems();
                     }
@@ -115,8 +115,24 @@ public class AssetOrganiserEditor : EditorWindow
                     return;
                 }
 
-                selectedFolder.AssociatedExtensions.Remove(mappingToRemove);
+                selectedFolder.associatedExtensions.Remove(mappingToRemove);
                 associatedExtensionsList.RefreshItems();
+            };
+
+            addMappingsButton.clicked += () =>
+            {
+                var selectedNode = folderTree.selectedItem as FolderNode;
+                if (selectedNode == null || selectedNode.path == "Assets/")
+                {
+                    Debug.LogWarning("Select a valid folder node first.");
+                    return;
+                }
+
+                AddMappingEditor wnd = GetWindow<AddMappingEditor>();
+                wnd.titleContent = new GUIContent("Add Mapping");
+                wnd.TargetNode = selectedNode;
+
+                wnd.OnApplyMappings += HandleMappingsApplied; 
             };
 
         }
@@ -237,13 +253,13 @@ public class AssetOrganiserEditor : EditorWindow
                 var newFolder = new FolderNode();
 
                 string trimmedFolderName = newFolderName.Trim();
-                newFolder.DisplayName = trimmedFolderName;
+                newFolder.displayName = trimmedFolderName;
 
-                var newPath = Path.Combine(parentFolder.Path, newFolderName);
-                newFolder.Path = newPath;
+                var newPath = Path.Combine(parentFolder.path, newFolderName);
+                newFolder.path = newPath;
 
                 // Add the new folder to the structure, rebuild the editor, and reset the value of the text field for the user.
-                parentFolder.Children.Add(newFolder);
+                parentFolder.children.Add(newFolder);
                 List<TreeViewItemData<FolderNode>> updatedRootItems = BuildTreeViewData(workingPresetCopy);
                 folderTree.SetRootItems(updatedRootItems);
                 folderTree.Rebuild();
@@ -260,7 +276,7 @@ public class AssetOrganiserEditor : EditorWindow
             folderTree.selectionChanged += (evt => 
             { 
                 var selection = folderTree.selectedItem as FolderNode;
-                if (selection == null || selection.Path == "Assets/")
+                if (selection == null || selection.path == "Assets/")
                 {
                     deleteFolderButton.SetEnabled(false);
                 }
@@ -273,7 +289,7 @@ public class AssetOrganiserEditor : EditorWindow
             deleteFolderButton.clicked += () =>
             {
                 var folderToDelete = folderTree.selectedItem as FolderNode;
-                if (folderToDelete == null || folderToDelete.Path == "Assets/")
+                if (folderToDelete == null || folderToDelete.path == "Assets/")
                 {
                     return;
                 }
@@ -288,7 +304,7 @@ public class AssetOrganiserEditor : EditorWindow
                     var parentNode = FolderStructureManager.FindParentNode(workingPresetCopy, folderToDelete);
                     if (parentNode != null)
                     {
-                        if (parentNode.Children.Remove(folderToDelete))
+                        if (parentNode.children.Remove(folderToDelete))
                         {
                             deleted = true;
                         }
@@ -299,7 +315,7 @@ public class AssetOrganiserEditor : EditorWindow
                     }
                     else
                     {
-                        Debug.LogError($"Could not find parent for node '{folderToDelete.DisplayName}' during deletion attempt.");
+                        Debug.LogError($"Could not find parent for node '{folderToDelete.displayName}' during deletion attempt.");
                         return;
                     }
                 }
@@ -399,10 +415,10 @@ public class AssetOrganiserEditor : EditorWindow
 
         foreach (var node in folderNodes)
         {
-            List<TreeViewItemData<FolderNode>> childItems = BuildTreeViewData(node.Children);
+            List<TreeViewItemData<FolderNode>> childItems = BuildTreeViewData(node.children);
 
             var itemData = new TreeViewItemData<FolderNode>(
-                id: node.Path.GetHashCode(), 
+                id: node.path.GetHashCode(), 
                 data: node,
                 children: childItems 
             );
@@ -465,5 +481,20 @@ public class AssetOrganiserEditor : EditorWindow
             }
         }
         return newList;
+    }
+
+    private void HandleMappingsApplied(List<string> extensionsToAdd)
+    {
+
+        Debug.Log($"Received {extensionsToAdd?.Count ?? 0} extensions from AddMappingEditor.");
+        if (extensionsToAdd != null)
+        {
+            foreach (var ext in extensionsToAdd)
+            {
+                Debug.Log($"- {ext}");
+            }
+        }
+
+ 
     }
 }

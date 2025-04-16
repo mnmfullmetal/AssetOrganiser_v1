@@ -11,30 +11,30 @@ public static class FolderStructureManager
     //Default folder structure following unity project organisation best practices.
     public static List<FolderNode> DefaultFolderStructure { get; private set; } = new List<FolderNode>()
     {
-        new FolderNode { DisplayName = "Assets", Path = "Assets/", Children = new List<FolderNode>()
+        new FolderNode { displayName = "Assets", path = "Assets/", children = new List<FolderNode>()
         {
-              new FolderNode { DisplayName = "Art", Path = "Assets/Art",  Children = new List<FolderNode>()
+              new FolderNode { displayName = "Art", path = "Assets/Art",  children = new List<FolderNode>()
               {
-                  new FolderNode { DisplayName = "Materials", Path = "Assets/Art/Materials",  AssociatedExtensions = new List<string> { ".mat" } },
-                  new FolderNode { DisplayName = "Models", Path = "Assets/Art/Models",  AssociatedExtensions = new List<string> { ".fbx", ".obj" }},
-                  new FolderNode { DisplayName = "Textures", Path = "Assets/Art/Textures", AssociatedExtensions = new List<string> { ".png", ".jpg", ".jpeg", ".tga", ".psd", ".tiff" }  }
+                  new FolderNode { displayName = "Materials", path = "Assets/Art/Materials",  associatedExtensions = new List<string> { ".mat" } },
+                  new FolderNode { displayName = "Models", path = "Assets/Art/Models",  associatedExtensions = new List<string> { ".fbx", ".obj" }},
+                  new FolderNode { displayName = "Textures", path = "Assets/Art/Textures", associatedExtensions = new List<string> { ".png", ".jpg", ".jpeg", ".tga", ".psd", ".tiff" }  }
               }},
-              new FolderNode { DisplayName = "Audio", Path = "Assets/Audio", Children= new List<FolderNode>()
+              new FolderNode { displayName = "Audio", path = "Assets/Audio", children= new List<FolderNode>()
               {
-                  new FolderNode {DisplayName ="Music", Path = "Assets/Audio/Music",  AssociatedExtensions = new List<string> { ".mp3", ".ogg" }},
-                  new FolderNode {DisplayName ="Sound", Path = "Assets/Audio/Sound", AssociatedExtensions = new List<string> { ".wav" } }
+                  new FolderNode {displayName ="Music", path = "Assets/Audio/Music",  associatedExtensions = new List<string> { ".mp3", ".ogg" }},
+                  new FolderNode {displayName ="Sound", path = "Assets/Audio/Sound", associatedExtensions = new List<string> { ".wav" } }
               }},
-              new FolderNode { DisplayName = "Code", Path = "Assets/Code" , Children = new List < FolderNode >()
+              new FolderNode { displayName = "Code", path = "Assets/Code" , children = new List < FolderNode >()
               {
-                  new FolderNode {DisplayName ="Scripts", Path = "Assets/Code/Scripts", AssociatedExtensions = new List<string> { ".cs" }},
-                  new FolderNode {DisplayName = "Shaders", Path = "Assets/Code/Shaders", AssociatedExtensions = new List<string> { ".shader", ".cginc" }}
+                  new FolderNode {displayName ="Scripts", path = "Assets/Code/Scripts", associatedExtensions = new List<string> { ".cs" }},
+                  new FolderNode {displayName = "Shaders", path = "Assets/Code/Shaders", associatedExtensions = new List<string> { ".shader", ".cginc" }}
               }},
-              new FolderNode { DisplayName = "Docs", Path = "Assets/Docs" },
-              new FolderNode { DisplayName = "Level", Path = "Assets/Level", Children = new List < FolderNode >()
+              new FolderNode { displayName = "Docs", path = "Assets/Docs" },
+              new FolderNode { displayName = "Level", path = "Assets/Level", children = new List < FolderNode >()
               {
-                  new FolderNode {DisplayName = "Prefabs", Path = "Assets/Level/Prefabs", AssociatedExtensions = new List<string> { ".prefab" }},
-                  new FolderNode {DisplayName = "Scenes", Path = "Assets/Level/Scenes", AssociatedExtensions = new List<string> { ".unity" }},
-                  new FolderNode {DisplayName = "UI", Path = "Assets/Level/UI"},
+                  new FolderNode {displayName = "Prefabs", path = "Assets/Level/Prefabs", associatedExtensions = new List<string> { ".prefab" }},
+                  new FolderNode {displayName = "Scenes", path = "Assets/Level/Scenes", associatedExtensions = new List<string> { ".unity" }},
+                  new FolderNode {displayName = "UI", path = "Assets/Level/UI"},
 
               }}
         }
@@ -69,19 +69,19 @@ public static class FolderStructureManager
     private static void EnsureFolderExists(FolderNode node)
     {
         // Ensure that the folders being created are within root folder "assets"
-        if (string.IsNullOrEmpty(node.Path) || !node.Path.StartsWith("Assets/"))
+        if (string.IsNullOrEmpty(node.path) || !node.path.StartsWith("Assets/"))
         {
-            Debug.LogWarning($"Skipping folder creation for invalid path: '{node.Path}' (Node: {node.DisplayName})");
+            Debug.LogWarning($"Skipping folder creation for invalid path: '{node.path}' (Node: {node.displayName})");
             return;
         }
 
         // Check that the folder being created does not already exist
-        if (!Directory.Exists(node.Path))
+        if (!Directory.Exists(node.path))
         {
             try
             {
-                string parentPath = Path.GetDirectoryName(node.Path);
-                string folderName = Path.GetFileName(node.Path);
+                string parentPath = Path.GetDirectoryName(node.path);
+                string folderName = Path.GetFileName(node.path);
 
                 // Check if parent path and the newfolder name exist before creating
                 if (!string.IsNullOrEmpty(parentPath) && !string.IsNullOrEmpty(folderName))
@@ -90,28 +90,28 @@ public static class FolderStructureManager
                     string guid = AssetDatabase.CreateFolder(parentPath, folderName);
                     if (!string.IsNullOrEmpty(guid))
                     {
-                        Debug.Log($"Created folder: {node.Path}");
+                        Debug.Log($"Created folder: {node.path}");
                     }
                     else
                     {
-                        Debug.LogError($"Failed to create folder: {node.Path}. AssetDatabase.CreateFolder returned empty GUID.");
+                        Debug.LogError($"Failed to create folder: {node.path}. AssetDatabase.CreateFolder returned empty GUID.");
                     }
                 }
                 else
                 {
-                    Debug.LogWarning($"Cannot determine parent path or folder name for: '{node.Path}'. Skipping creation.");
+                    Debug.LogWarning($"Cannot determine parent path or folder name for: '{node.path}'. Skipping creation.");
                 }
             }
             catch (System.Exception e)
             {
-                Debug.LogError($"Error creating folder '{node.Path}': {e.Message}");
+                Debug.LogError($"Error creating folder '{node.path}': {e.Message}");
             }
         }
 
         // Recursively process children folders
-        if (node.Children != null && node.Children.Count > 0)
+        if (node.children != null && node.children.Count > 0)
         {
-            foreach (var childNode in node.Children)
+            foreach (var childNode in node.children)
             {
                 EnsureFolderExists(childNode); 
             }
@@ -128,15 +128,15 @@ public static class FolderStructureManager
 
         foreach (var node in nodesToSearch)
         {
-            if (node.AssociatedExtensions != null && node.AssociatedExtensions.Contains(extension))
+            if (node.associatedExtensions != null && node.associatedExtensions.Contains(extension))
             {
-                return node.Path; 
+                return node.path; 
             }
 
-            if (node.Children != null && node.Children.Count > 0)
+            if (node.children != null && node.children.Count > 0)
             {
                 // Recursively search for target path
-                string pathInChildren = FindTargetPathForExtension(extension, node.Children);
+                string pathInChildren = FindTargetPathForExtension(extension, node.children);
                 if (pathInChildren != null)
                 {
                     return pathInChildren;
@@ -156,24 +156,24 @@ public static class FolderStructureManager
         }
 
         var copyNode = new FolderNode();
-        copyNode.DisplayName = originalNode.DisplayName;
-        copyNode.Path = originalNode.Path;
+        copyNode.displayName = originalNode.displayName;
+        copyNode.path = originalNode.path;
 
-        if(originalNode.AssociatedExtensions == null)
+        if(originalNode.associatedExtensions == null)
         {
-            copyNode.AssociatedExtensions = new List<string>();
+            copyNode.associatedExtensions = new List<string>();
         }
         else
         {
-            copyNode.AssociatedExtensions = new List<string>(originalNode.AssociatedExtensions);
+            copyNode.associatedExtensions = new List<string>(originalNode.associatedExtensions);
 
         }
 
-        if(originalNode.Children != null && originalNode.Children.Count > 0)
+        if(originalNode.children != null && originalNode.children.Count > 0)
         {
-            foreach (var child in originalNode.Children)
+            foreach (var child in originalNode.children)
             {
-                copyNode.Children.Add(CloneFolderNode(child));
+                copyNode.children.Add(CloneFolderNode(child));
             }
         }
 
@@ -187,19 +187,19 @@ public static class FolderStructureManager
         {
             if (potentialParent != null)
             {
-                Debug.Log($"Checking if '{potentialParent.DisplayName}' children list contains '{childNode.DisplayName}'. Result: {potentialParent.Children.Contains(childNode)}");
+                Debug.Log($"Checking if '{potentialParent.displayName}' children list contains '{childNode.displayName}'. Result: {potentialParent.children.Contains(childNode)}");
 
                 // Check if node exists as child of the potential parent node
-                if (potentialParent.Children.Contains(childNode))
+                if (potentialParent.children.Contains(childNode))
                 {
                     return potentialParent;
                 }
 
                 // If the potential parent doesnt contain the child, check the potential parent for children
-                else if (potentialParent.Children.Count > 0)
+                else if (potentialParent.children.Count > 0)
                 {
                     // Recursively search the children, or "subparents" of the potential parent 
-                    var potentialSubParent = FindParentNode(potentialParent.Children, childNode);
+                    var potentialSubParent = FindParentNode(potentialParent.children, childNode);
                     if (potentialSubParent != null)
                     {
                         return potentialSubParent;
@@ -211,6 +211,7 @@ public static class FolderStructureManager
         return null;
 
     }
+
 
 }
 

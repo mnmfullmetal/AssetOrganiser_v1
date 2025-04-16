@@ -6,8 +6,8 @@ using System;
 [Serializable]
 public class FolderNode 
 {
-    public string DisplayName;
-    public string Path;
-    public List<FolderNode> Children = new List<FolderNode>();
-    public List<string> AssociatedExtensions = new List<string>();
+    public string displayName;
+    public string path;
+    public List<FolderNode> children = new List<FolderNode>();
+    public List<string> associatedExtensions = new List<string>();
 }

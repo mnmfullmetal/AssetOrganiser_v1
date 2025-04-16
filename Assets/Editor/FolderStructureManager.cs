@@ -3,10 +3,12 @@ using System.Collections.Generic;
 using UnityEngine;
 using System.IO;
 using UnityEditor;
+using System.Xml.Schema;
 
 public static class FolderStructureManager 
 {
     public static string PresetSaveDirectory => "ProjectSettings/AssetOrganiserPresets";
+    public static readonly char[] invalidFileNameChars = Path.GetInvalidFileNameChars();
 
     //Default folder structure following unity project organisation best practices.
     public static List<FolderNode> DefaultFolderStructure { get; private set; } = new List<FolderNode>()
@@ -212,6 +214,39 @@ public static class FolderStructureManager
 
     }
 
+    public static FolderNode IsExtensionAlreadyInUse(List<FolderNode> foldersToSearch,FolderNode folderToExclude, string extension)
+    {
+        foreach(var folder in foldersToSearch)
+        {
+            if (folder == null)
+            {
+                continue; 
+            }
 
+            if (folder == folderToExclude)
+            {
+                continue;
+            }
+
+            if (folder.associatedExtensions != null && folder.associatedExtensions.Contains(extension))
+            {
+                return folder;
+            }
+            else
+            {
+                if (folder.children != null && folder.children.Count > 0)
+                {
+                    var conflictingFolder = IsExtensionAlreadyInUse(folder.children, folderToExclude, extension);
+
+                    if (conflictingFolder != null)
+                    {
+                        return conflictingFolder;
+                    }
+                }
+
+            }
+        }
+        return null;
+    }
 }
 

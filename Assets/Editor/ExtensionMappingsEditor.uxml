@@ -6,8 +6,8 @@
     <ui:VisualElement name="ButtonPanelContainer" style="flex-grow: 1;">
         <ui:Button text="Apply mapping to folder" parse-escape-sequences="true" display-tooltip-when-elided="true" name="ApplyMappingButton" style="min-width: 100%; max-width: none; align-items: center; justify-content: flex-start; align-self: center;" />
         <ui:VisualElement name="CreateMappingContainer" style="flex-grow: 1; flex-direction: row; align-items: flex-start; justify-content: space-between; align-self: auto;">
-            <ui:TextField picking-mode="Ignore" value="filler text" name="CreateMappingTextField" style="max-width: 30%;" />
-            <ui:Button text="Create new mapping" parse-escape-sequences="true" display-tooltip-when-elided="true" name="CreateMappingButton" style="min-width: 65%;" />
+            <ui:TextField picking-mode="Ignore" name="CreateMappingTextField" style="max-width: 30%;" />
+            <ui:Button text="Add new extension to mapping list " parse-escape-sequences="true" display-tooltip-when-elided="true" name="CreateMappingButton" style="min-width: 65%;" />
         </ui:VisualElement>
     </ui:VisualElement>
 </ui:UXML>

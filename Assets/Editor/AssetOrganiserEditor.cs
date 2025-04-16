@@ -4,7 +4,7 @@ using UnityEngine;
 using UnityEngine.UIElements;
 using System.IO;
 using System;
-using Unity.VisualScripting;
+
 
 
 public class AssetOrganiserEditor : EditorWindow
@@ -16,9 +16,11 @@ public class AssetOrganiserEditor : EditorWindow
         public List<FolderNode> RootNodes = new List<FolderNode>();
     }
 
+    private FolderNode nodeSelectedForEdit = null;
     private List<FolderNode> workingPresetCopy;
+    private ListView associatedExtensionsList;
     private DropdownField presetDropdown;
-    private static readonly char[] invalidFileNameChars = Path.GetInvalidFileNameChars();
+    
 
     [MenuItem("Window/AssetOrganiserEditor")]
     public static void DisplayWindow()
@@ -54,7 +56,7 @@ public class AssetOrganiserEditor : EditorWindow
 
         // Query for the AssociatedExtensionsPanel and its elements.
         var associatedExtensionsPanel = rootVisualElement.Q<VisualElement>("AssociatedExtensionsPanel");
-        var associatedExtensionsList = rootVisualElement.Q<ListView>("AssociatedExtensionsList");
+        associatedExtensionsList = rootVisualElement.Q<ListView>("AssociatedExtensionsList");
         var addMappingsButton = rootVisualElement.Q<Button>("AddMappingButton");
         var removeMappingsButton = rootVisualElement.Q<Button>("RemoveMappingButton");
         if (associatedExtensionsPanel != null && associatedExtensionsList != null && addMappingsButton != null && removeMappingsButton != null)
@@ -104,14 +106,14 @@ public class AssetOrganiserEditor : EditorWindow
                 var mappingToRemove = associatedExtensionsList.selectedItem as string;
                 if (string.IsNullOrEmpty(mappingToRemove))
                 {
-                    Debug.LogError("Selected item in extension list was not a valid string.");
+                    Debug.LogWarning("Selected item in extension list was not a valid string.");
                     return;
                 }
 
                 var selectedFolder = folderTree.selectedItem as FolderNode;
                 if (selectedFolder == null)
                 {
-                    Debug.LogError("Selected folder not valid");
+                    Debug.LogWarning("Selected folder not valid");
                     return;
                 }
 
@@ -127,6 +129,8 @@ public class AssetOrganiserEditor : EditorWindow
                     Debug.LogWarning("Select a valid folder node first.");
                     return;
                 }
+
+                nodeSelectedForEdit = selectedNode;
 
                 AddMappingEditor wnd = GetWindow<AddMappingEditor>();
                 wnd.titleContent = new GUIContent("Add Mapping");
@@ -337,7 +341,7 @@ public class AssetOrganiserEditor : EditorWindow
             {
                 var presetName = savePresetText.value;
                 
-                if (string.IsNullOrWhiteSpace(presetName) || presetName.IndexOfAny(invalidFileNameChars) != -1)
+                if (string.IsNullOrWhiteSpace(presetName) || presetName.IndexOfAny(FolderStructureManager.invalidFileNameChars) != -1)
                 {
                     Debug.LogWarning($"Invalid Preset Name: '{presetName}'. Name cannot be empty, whitespace, or contain invalid characters (e.g., / \\ : * ? \" < > |).");
                     return;
@@ -483,18 +487,36 @@ public class AssetOrganiserEditor : EditorWindow
         return newList;
     }
 
-    private void HandleMappingsApplied(List<string> extensionsToAdd)
+    private void HandleMappingsApplied(string extensionToAdd)
     {
-
-        Debug.Log($"Received {extensionsToAdd?.Count ?? 0} extensions from AddMappingEditor.");
-        if (extensionsToAdd != null)
+        if (!string.IsNullOrEmpty(extensionToAdd))
         {
-            foreach (var ext in extensionsToAdd)
+            var selectedFolder = nodeSelectedForEdit;
+            if (selectedFolder == null)
             {
-                Debug.Log($"- {ext}");
+                return;
             }
+
+          
+
+            if (selectedFolder.associatedExtensions.Contains(extensionToAdd))
+            {
+                EditorUtility.DisplayDialog("Mapping Error", "extension mapping already exists in this fodler", "OK");
+                return;
+            }
+
+            var conflictingNode = FolderStructureManager.IsExtensionAlreadyInUse(workingPresetCopy, selectedFolder, extensionToAdd);
+            if (conflictingNode != null)
+            {
+                EditorUtility.DisplayDialog("Mapping Error", $"Extension mapping'{extensionToAdd}' already mapped to {conflictingNode.displayName}. User must remove existing mapping before applying to another ", "OK");
+                return;
+            }
+
+            selectedFolder.associatedExtensions.Add(extensionToAdd);
+
+            associatedExtensionsList.RefreshItems();
         }
 
- 
+
     }
 }

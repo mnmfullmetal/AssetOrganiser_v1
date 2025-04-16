@@ -1,13 +1,14 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Net;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.UIElements;
 
 public class AddMappingEditor : EditorWindow
 {
-    public event Action<List<string>> OnApplyMappings;
+    public event Action<string> OnApplyMappings;
     public FolderNode TargetNode { get; set; }
 
     private List<string> extensions = new List<string>()
@@ -27,7 +28,7 @@ public class AddMappingEditor : EditorWindow
         // Models
         ".fbx",
         ".obj",
-        ".blend", // Blender File (requires Blender install usually)
+        ".blend", 
         ".max",
         ".ma",
         ".mb",
@@ -119,7 +120,68 @@ public class AddMappingEditor : EditorWindow
             return ;
         }
 
-       
-        
+        var applyButton = rootVisualElement.Q<Button>("ApplyMappingButton");
+        var newMapTextField = rootVisualElement.Q<TextField>("CreateMappingTextField");
+        if (applyButton == null)
+        {
+            Debug.LogWarning("Apply button can not be found ");
+            return;
+
+        }
+
+        applyButton.clicked += () =>
+        {
+            var customExtension = newMapTextField.text;
+            var selectedExtension = predefinedExtensionsList.selectedItem as string;
+            if (selectedExtension == null && string.IsNullOrWhiteSpace(customExtension))
+            {
+                Debug.LogWarning("Need to select or enter an extension");
+                return;
+            }
+
+            string extensionToApply = null;
+            if (!string.IsNullOrWhiteSpace(customExtension))
+            {
+                bool isCustomValid = true;
+                string finalCustomExtension = customExtension; 
+
+                if (!finalCustomExtension.StartsWith("."))
+                {
+                    Debug.LogWarning($"Custom extension '{finalCustomExtension}' missing leading period. Adding '.' automatically.");
+                    finalCustomExtension = "." + finalCustomExtension;
+                }
+
+                if (finalCustomExtension.Length > 1 && finalCustomExtension.Substring(1).IndexOfAny(FolderStructureManager.invalidFileNameChars) != -1)
+                {
+                    EditorUtility.DisplayDialog("Invalid Characters", $"Custom extension '{finalCustomExtension}' contains invalid filename characters.", "OK");
+                    isCustomValid = false;
+                    
+                }
+
+                if (finalCustomExtension.Length < 2)
+                {
+                    EditorUtility.DisplayDialog("Invalid Custom Input", "Custom extension must be at least one character after the period.", "OK");
+                    isCustomValid = false;
+                }
+
+               if (isCustomValid)
+                {
+                    extensionToApply = finalCustomExtension;
+                }
+            }
+
+            if (string.IsNullOrWhiteSpace(extensionToApply))
+            {
+                if (selectedExtension != null)
+                {
+                    extensionToApply = selectedExtension;
+                }
+            }
+           
+
+            OnApplyMappings?.Invoke(extensionToApply);
+
+            this.Close();
+        };
     }
 }

@@ -167,6 +167,7 @@ public class AssetOrganiserEditor : EditorWindow
 
                 List<TreeViewItemData<FolderNode>> updatedRootItems = BuildTreeViewData(workingPresetCopy);
                 folderTree.SetRootItems(updatedRootItems);
+                folderTree.Rebuild();
 
                 EditorUtility.DisplayDialog("Load Default", "Default structure loaded.", "OK");
                 return;
@@ -204,6 +205,8 @@ public class AssetOrganiserEditor : EditorWindow
                     // Refresh the TreeView with the newly loaded data
                     List<TreeViewItemData<FolderNode>> updatedRootItems = BuildTreeViewData(workingPresetCopy);
                     folderTree.SetRootItems(updatedRootItems);
+                    folderTree.Rebuild();
+
 
                     EditorUtility.DisplayDialog("Load Successful", $"Preset '{selectedPreset}' loaded.", "OK");
                     Debug.Log($"Preset '{selectedPreset}' loaded successfully.");
@@ -555,7 +558,7 @@ public class AssetOrganiserEditor : EditorWindow
         {
             EditorUtility.DisplayDialog(
             "Already Applied Structure",
-            "This structue is already applied to the project.\n",
+            "This structure is already applied to the project.\n",
             "Cancel");
             return;
 
@@ -590,6 +593,7 @@ public class AssetOrganiserEditor : EditorWindow
             lastAppliedStructure = FolderStructureManager.DeepCloneList(workingPresetCopy);
 
             EditorPrefs.SetString(FolderStructureManager.LastAppliedPresetPrefKey, presetNameBeingApplied);
+
             Debug.Log($"Saved '{presetNameBeingApplied}' to EditorPrefs as last applied preset.");
 
         }

@@ -81,7 +81,6 @@ public class AddMappingEditor : EditorWindow
         ".mov",
         ".webm"
 
-
     };
 
     public void CreateGUI()

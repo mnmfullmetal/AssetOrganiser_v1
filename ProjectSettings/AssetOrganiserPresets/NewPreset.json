@@ -37,12 +37,6 @@
                                 ".psd",
                                 ".tiff"
                             ]
-                        },
-                        {
-                            "displayName": "newfolder",
-                            "path": "Assets/Art\\newfolder",
-                            "children": [],
-                            "associatedExtensions": []
                         }
                     ],
                     "associatedExtensions": []
@@ -128,6 +122,12 @@
                             "associatedExtensions": []
                         }
                     ],
+                    "associatedExtensions": []
+                },
+                {
+                    "displayName": "NewFolder",
+                    "path": "Assets/NewFolder",
+                    "children": [],
                     "associatedExtensions": []
                 }
             ],

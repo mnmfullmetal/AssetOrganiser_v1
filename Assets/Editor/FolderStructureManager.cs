@@ -112,7 +112,6 @@ public static class FolderStructureManager
                 {
                     Debug.LogWarning($"AssetOrganiser Init: Last applied preset file not found: '{presetPath}'. Applying default structure instead.");
                     structureToApply = DefaultFolderStructure; 
-                    EditorPrefs.DeleteKey(LastAppliedPresetPrefKey);
                 }
             }
             catch (Exception loadEx)

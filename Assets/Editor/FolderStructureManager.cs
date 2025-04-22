@@ -3,12 +3,16 @@ using System.Collections.Generic;
 using UnityEngine;
 using System.IO;
 using UnityEditor;
-using System.Xml.Schema;
 using System;
 
 public static class FolderStructureManager 
 {
+    public const string LastAppliedPresetPrefKey = "AssetOrganiser_LastAppliedPresetName";
+
+    // Root save directory path string for saved presets.
     public static string PresetSaveDirectory => "ProjectSettings/AssetOrganiserPresets";
+
+    // Array of invalid characters when working with file names and paths. 
     public static readonly char[] invalidFileNameChars = Path.GetInvalidFileNameChars();
 
     //Default folder structure following unity project organisation best practices.
@@ -44,19 +48,91 @@ public static class FolderStructureManager
        }
     };
 
-    // Initialise called when editor is loaded.
+    // Called when editor first loads
     [InitializeOnLoadMethod]
     static void Initialise()
     {
-        ApplyFolderStructure(DefaultFolderStructure);
-
-        if(PresetSaveDirectory != null)
+        try
         {
-            Directory.CreateDirectory(PresetSaveDirectory);
+            if (!string.IsNullOrEmpty(PresetSaveDirectory))
+            {
+                Directory.CreateDirectory(PresetSaveDirectory);
+            }
+        }
+        catch (Exception ex)
+        {
+            Debug.LogError($"AssetOrganiser: Failed to create preset directory '{PresetSaveDirectory}'. Error: {ex.Message}");
+        }
 
+        List<FolderNode> structureToApply = null;
+        string presetNameToLoad = "Default"; 
+
+        try
+        {
+            presetNameToLoad = EditorPrefs.GetString(LastAppliedPresetPrefKey, "Default");
+        }
+        catch (Exception ex)
+        {
+            Debug.LogError($"AssetOrganiser: Error reading EditorPrefs key '{LastAppliedPresetPrefKey}'. Applying default structure. Error: {ex.Message}");
+            presetNameToLoad = "Default"; 
+        }
+
+        Debug.Log($"AssetOrganiser Init: Attempting to apply structure for '{presetNameToLoad}' based on EditorPrefs.");
+
+        if (presetNameToLoad == "Default" || string.IsNullOrEmpty(presetNameToLoad))
+        {
+            structureToApply = DefaultFolderStructure;
+            Debug.Log("AssetOrganiser Init: Using Default structure.");
+        }
+        else
+        {
+            string presetPath = null; 
+            try
+            {
+                presetPath = (Path.Combine(PresetSaveDirectory, presetNameToLoad) + ".json").Replace('\\', '/');
+
+                if (File.Exists(presetPath))
+                {
+                    string jsonData = File.ReadAllText(presetPath);
+
+                    FolderNodeListWrapper wrapper = JsonUtility.FromJson<FolderNodeListWrapper>(jsonData);
+
+                    if (wrapper != null && wrapper.RootNodes != null) 
+                    {
+                        structureToApply = wrapper.RootNodes; 
+                        Debug.Log($"AssetOrganiser Init: Successfully loaded preset '{presetNameToLoad}'.");
+                    }
+                    else
+                    {
+                        Debug.LogWarning($"AssetOrganiser Init: Failed to parse JSON or structure was invalid in '{presetPath}'. Applying default structure instead.");
+                        structureToApply = DefaultFolderStructure; 
+                    }
+                }
+                else
+                {
+                    Debug.LogWarning($"AssetOrganiser Init: Last applied preset file not found: '{presetPath}'. Applying default structure instead.");
+                    structureToApply = DefaultFolderStructure; 
+                    EditorPrefs.DeleteKey(LastAppliedPresetPrefKey);
+                }
+            }
+            catch (Exception loadEx)
+            {
+                Debug.LogError($"AssetOrganiser Init: Error loading/deserializing preset '{presetPath ?? presetNameToLoad}'. Applying default structure instead. Error: {loadEx.Message}\n{loadEx.StackTrace}");
+                structureToApply = DefaultFolderStructure; 
+            }
+        }
+
+        if (structureToApply != null)
+        {
+            ApplyFolderStructure(structureToApply);
+        }
+        else
+        {
+            Debug.LogError("AssetOrganiser Init: Critical error - Could not determine any structure (not even default) to apply!");
         }
     }
 
+    //Applies a Folder structure across unity projcect
     public static void ApplyFolderStructure(List<FolderNode> structureToApply)
     {
         if (structureToApply == null) return;
@@ -69,6 +145,7 @@ public static class FolderStructureManager
         Debug.Log("Folder structure verified/applied.");
     }
 
+    // Helper function to recursively create directories for folder structure.  
     private static void EnsureFolderExists(FolderNode node)
     {
         // Ensure that the folders being created are within root folder "assets"
@@ -150,7 +227,7 @@ public static class FolderStructureManager
         return null; 
     }
 
-    // Deep copy method of copying the immutable saved and default presets for the folder structure. 
+    // Deep copy method of copying FolderNodes, used to create deep copies of the folder structure
     public static FolderNode CloneFolderNode(FolderNode originalNode)
     {
         if (originalNode == null)
@@ -181,6 +258,24 @@ public static class FolderStructureManager
         }
 
         return copyNode;
+    }
+
+
+    // Helper Function to deep copy/clone FolderNode structures
+    public static List<FolderNode> DeepCloneList(List<FolderNode> originalList)
+    {
+        if (originalList == null) return null;
+
+        List<FolderNode> newList = new List<FolderNode>();
+        foreach (var node in originalList)
+        {
+            FolderNode clonedNode = FolderStructureManager.CloneFolderNode(node);
+            if (clonedNode != null)
+            {
+                newList.Add(clonedNode);
+            }
+        }
+        return newList;
     }
 
     // Search for the parent of a folder, used for deletion of nodes.
@@ -215,6 +310,7 @@ public static class FolderStructureManager
 
     }
 
+    // Helper method to check for conflictions in extension mapping.
     public static FolderNode IsExtensionAlreadyInUse(List<FolderNode> foldersToSearch,FolderNode folderToExclude, string extension)
     {
         foreach(var folder in foldersToSearch)
@@ -250,7 +346,5 @@ public static class FolderStructureManager
         return null;
     }
 
-
-   
 }
 

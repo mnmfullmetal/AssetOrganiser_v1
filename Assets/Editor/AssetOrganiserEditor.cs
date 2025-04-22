@@ -9,20 +9,15 @@ using System;
 
 public class AssetOrganiserEditor : EditorWindow
 {
-    // wrapper for correct json deserialisation
-    [Serializable]
-    private class FolderNodeListWrapper
-    {
-        public List<FolderNode> RootNodes = new List<FolderNode>();
-    }
 
+    private List<FolderNode> lastAppliedStructure = null;
     private FolderNode nodeSelectedForEdit = null;
     private List<FolderNode> workingPresetCopy;
     private ListView associatedExtensionsList;
     private DropdownField presetDropdown;
     
 
-    [MenuItem("Window/AssetOrganiserEditor")]
+    [MenuItem("Window/Asset Organiser")]
     public static void DisplayWindow()
     {
         AssetOrganiserEditor wnd = GetWindow<AssetOrganiserEditor>();
@@ -31,16 +26,16 @@ public class AssetOrganiserEditor : EditorWindow
 
     public void CreateGUI()
     {
-        // Load and Instantiate uxml
+        // Load and Instantiate uxml for main tool window
         var visualTree = AssetDatabase.LoadAssetAtPath<VisualTreeAsset>("Assets/Editor/AssetOrganiserEditor.uxml");
         VisualElement root = visualTree.Instantiate();
         rootVisualElement.Add(root);
 
-        // Query for the TreeView element
+        // Query for the TreeView element that will represent the folder structure
         var folderTree = rootVisualElement.Q<TreeView>("FolderStructure");
 
         // Create copy of folder structure to edit and work with
-        workingPresetCopy = DeepCloneList(FolderStructureManager.DefaultFolderStructure);
+        workingPresetCopy = FolderStructureManager.DeepCloneList(FolderStructureManager.DefaultFolderStructure);
 
         // Build the TreeViewItemData list
         List<TreeViewItemData<FolderNode>> rootItems = BuildTreeViewData(workingPresetCopy);
@@ -54,13 +49,14 @@ public class AssetOrganiserEditor : EditorWindow
             label.text = (folderTree.GetItemDataForIndex<FolderNode>(index)).displayName;
         };
 
-        // Query for the AssociatedExtensionsPanel and its elements.
+       // Query for the AssociatedExtensionsPanel and its elements.
         var associatedExtensionsPanel = rootVisualElement.Q<VisualElement>("AssociatedExtensionsPanel");
         associatedExtensionsList = rootVisualElement.Q<ListView>("AssociatedExtensionsList");
         var addMappingsButton = rootVisualElement.Q<Button>("AddMappingButton");
         var removeMappingsButton = rootVisualElement.Q<Button>("RemoveMappingButton");
         if (associatedExtensionsPanel != null && associatedExtensionsList != null && addMappingsButton != null && removeMappingsButton != null)
         {
+            // Hide the extensions panel by default 
             associatedExtensionsPanel.style.display = DisplayStyle.None;
 
             // Populate the Associated Extensions list 
@@ -77,7 +73,8 @@ public class AssetOrganiserEditor : EditorWindow
                     label.text = "Error binding item";
                 }
             };
-
+             
+            // Handle selection of folder node and display of its mapped extensions
             folderTree.selectionChanged += (evt =>
             {
                 var selection = folderTree.selectedItem as FolderNode;
@@ -96,11 +93,10 @@ public class AssetOrganiserEditor : EditorWindow
 
                         associatedExtensionsList.RefreshItems();
                     }
-
-
                 }
             });
 
+            // Handle "Remove mapping" button when clicked 
             removeMappingsButton.clicked += () =>
             {
                 var mappingToRemove = associatedExtensionsList.selectedItem as string;
@@ -121,6 +117,7 @@ public class AssetOrganiserEditor : EditorWindow
                 associatedExtensionsList.RefreshItems();
             };
 
+            // Handle "Add mapping" button when clicked
             addMappingsButton.clicked += () =>
             {
                 var selectedNode = folderTree.selectedItem as FolderNode;
@@ -132,10 +129,12 @@ public class AssetOrganiserEditor : EditorWindow
 
                 nodeSelectedForEdit = selectedNode;
 
+                // Display "Add Mapping" window 
                 AddMappingEditor wnd = GetWindow<AddMappingEditor>();
                 wnd.titleContent = new GUIContent("Add Mapping");
                 wnd.TargetNode = selectedNode;
 
+                // Assign delegate function to OnApplyMappings event of the Add Mapping editor to handle the application of extension maps.
                 wnd.OnApplyMappings += HandleMappingsApplied;
             };
 
@@ -150,6 +149,7 @@ public class AssetOrganiserEditor : EditorWindow
         // Create dropdown choices from saved presets
         RefreshPresetDropdown();
 
+        // Handle "Load Preset" button when clicked
         loadPresetButton.clicked += () =>
         {
             var selectedPreset = presetDropdown.value;
@@ -159,9 +159,11 @@ public class AssetOrganiserEditor : EditorWindow
                 return;
             }
 
+            // If "Default" is being loaded.
             if (selectedPreset == "Default")
             {
-                workingPresetCopy = DeepCloneList(FolderStructureManager.DefaultFolderStructure);
+                // Deep copy default structure to working preset copy and rebuild folder tree. 
+                workingPresetCopy = FolderStructureManager.DeepCloneList(FolderStructureManager.DefaultFolderStructure);
 
                 List<TreeViewItemData<FolderNode>> updatedRootItems = BuildTreeViewData(workingPresetCopy);
                 folderTree.SetRootItems(updatedRootItems);
@@ -170,9 +172,11 @@ public class AssetOrganiserEditor : EditorWindow
                 return;
             }
 
+            // Construct path of preset to be loaded. 
             var rootSaveDirectory = FolderStructureManager.PresetSaveDirectory;
             var loadPath = Path.Combine(rootSaveDirectory, selectedPreset).Replace('\\', '/');
             loadPath = loadPath + ".json";
+
             if (!File.Exists(loadPath))
             {
                 EditorUtility.DisplayDialog("Load Error", $"Preset file '{selectedPreset}.json' not found.", "OK");
@@ -181,9 +185,9 @@ public class AssetOrganiserEditor : EditorWindow
                 return;
             }
 
-
             try
             {
+                // Deserialise Json data into wrapper class
                 var jsonData = File.ReadAllText(loadPath);
                 FolderNodeListWrapper loadedWrapper = JsonUtility.FromJson<FolderNodeListWrapper>(jsonData);
                 List<FolderNode> loadedPresetList = null;
@@ -194,7 +198,8 @@ public class AssetOrganiserEditor : EditorWindow
 
                 if (loadedPresetList != null)
                 {
-                    workingPresetCopy = DeepCloneList(loadedWrapper.RootNodes);
+                    // Deep copy the deserialised json data (now in wrapper) to working  preset copy
+                    workingPresetCopy = FolderStructureManager.DeepCloneList(loadedWrapper.RootNodes);
 
                     // Refresh the TreeView with the newly loaded data
                     List<TreeViewItemData<FolderNode>> updatedRootItems = BuildTreeViewData(workingPresetCopy);
@@ -230,8 +235,10 @@ public class AssetOrganiserEditor : EditorWindow
         var addFolderText = rootVisualElement.Q<TextField>("AddFolderTextField");
         if (addFolderButton != null && addFolderText != null)
         {
+            // Disable "Add folder" button by default.
             addFolderButton.SetEnabled(false);
 
+            // Handle Enabling/Disabling Add folder button when textfield value changes.
             addFolderText.RegisterValueChangedCallback(evt =>
             {
                 if (string.IsNullOrWhiteSpace(evt.newValue))
@@ -244,7 +251,7 @@ public class AssetOrganiserEditor : EditorWindow
                 }
             });
 
-            // Add folder to the TreeView when "Add Folder" button is clicked
+            // Handle "Add folder" button when clicked, adding a folder to the TreeView. 
             addFolderButton.clicked += () =>
             {
                 var parentFolder = folderTree.selectedItem as FolderNode;
@@ -271,12 +278,15 @@ public class AssetOrganiserEditor : EditorWindow
 
             };
         }
-
+        
+        // Query for "Delete Folder" button
         var deleteFolderButton = rootVisualElement.Q<Button>("RemoveFolderButton");
         if (deleteFolderButton != null)
         {
+            // Disable Delete folder by default
             deleteFolderButton.SetEnabled(false);
 
+            // Handle enabling/disabling Delete Folder button when selection changes
             folderTree.selectionChanged += (evt =>
             {
                 var selection = folderTree.selectedItem as FolderNode;
@@ -290,6 +300,7 @@ public class AssetOrganiserEditor : EditorWindow
                 }
             });
 
+            // Handle when Delete Folder button is clicked, deleting the selected folder from the tree view. 
             deleteFolderButton.clicked += () =>
             {
                 var folderToDelete = folderTree.selectedItem as FolderNode;
@@ -324,8 +335,10 @@ public class AssetOrganiserEditor : EditorWindow
                     }
                 }
 
+                // Check if successfully deleted
                 if (deleted)
                 {
+                    // Update tree view 
                     List<TreeViewItemData<FolderNode>> updatedRootItems = BuildTreeViewData(workingPresetCopy);
                     folderTree.SetRootItems(updatedRootItems);
                     folderTree.Rebuild();
@@ -333,6 +346,7 @@ public class AssetOrganiserEditor : EditorWindow
             };
         }
 
+        // Query for "Save Preset" button and text field
         var savePresetButton = rootVisualElement.Q<Button>("SavePresetButton");
         var savePresetText = rootVisualElement.Q<TextField>("SavePresetTextField");
         if (savePresetButton != null && savePresetText != null)
@@ -348,16 +362,21 @@ public class AssetOrganiserEditor : EditorWindow
 
                 }
 
+                // Construct path to save preset
                 var saveDirectory = FolderStructureManager.PresetSaveDirectory;
                 var savePath = Path.Combine(saveDirectory, presetName).Replace("\\", "/");
                 savePath = savePath + ".json";
 
                 try
                 {
+                    // Create wrapper for Json serialisation and copy the working preset copy into the wrapper. 
                     var wrapper = new FolderNodeListWrapper();
                     wrapper.RootNodes = workingPresetCopy;
+
+                    // Serialise the wrapped data into Json data files
                     var jsonData = EditorJsonUtility.ToJson(wrapper, true);
                     File.WriteAllText(savePath, jsonData);
+
                     EditorUtility.DisplayDialog("Save succesful", "Preset saved succesfully", "OK");
                     RefreshPresetDropdown();
                 }
@@ -367,6 +386,7 @@ public class AssetOrganiserEditor : EditorWindow
                     EditorUtility.DisplayDialog("Save Error", $"Failed to save preset '{presetName}'.\nError: {e.Message}", "OK");
                 }
 
+                // Clear the text field
                 savePresetText.value = string.Empty;
             };
         }
@@ -383,6 +403,7 @@ public class AssetOrganiserEditor : EditorWindow
                     return;
                 }
 
+                // Construct path for preset deletion
                 var rootPresetFolder = FolderStructureManager.PresetSaveDirectory;
                 var fileToDelete = Path.Combine(rootPresetFolder, selectedItem).Replace("\\", "/");
                 fileToDelete = fileToDelete + ".json";
@@ -393,6 +414,7 @@ public class AssetOrganiserEditor : EditorWindow
 
                 try
                 {
+                    // Delete saved preset file 
                     File.Delete(fileToDelete);
                     EditorUtility.DisplayDialog("Deletion Successful", $"File '{fileToDelete}' Deleted.", "OK");
 
@@ -403,25 +425,23 @@ public class AssetOrganiserEditor : EditorWindow
 
                 }
 
+                // Refresh dropdown list of presets
                 RefreshPresetDropdown();
 
             };
         }
 
+        // Query for "Apply Preset" button
         var applyStructureButton = rootVisualElement.Q<Button>("ApplyFolderStructureButton");
-
         if (applyStructureButton == null)
         {
-            // Log error if the button isn't found in your UXML file
             Debug.LogError("ApplyStructureButton not found in UXML! Cannot attach handler.");
         }
         else
         {
-            // Attach the clicked event to a new handler method
+            // Assign delegate funciton to clicked event of "apply preset" button 
             applyStructureButton.clicked += HandleApplyStructureClicked;
         }
-
-
     }
 
     // Helper to recursively create the treeview
@@ -484,23 +504,6 @@ public class AssetOrganiserEditor : EditorWindow
 
     }
 
-
-    private List<FolderNode> DeepCloneList(List<FolderNode> originalList)
-    {
-        if (originalList == null) return null; 
-
-        List<FolderNode> newList = new List<FolderNode>();
-        foreach (var node in originalList)
-        {
-            FolderNode clonedNode = FolderStructureManager.CloneFolderNode(node);
-            if (clonedNode != null)
-            {
-                newList.Add(clonedNode);
-            }
-        }
-        return newList;
-    }
-
     private void HandleMappingsApplied(string extensionToAdd)
     {
         if (!string.IsNullOrEmpty(extensionToAdd))
@@ -532,11 +535,30 @@ public class AssetOrganiserEditor : EditorWindow
 
     private void HandleApplyStructureClicked()
     {
+        string presetNameBeingApplied = "Default"; 
+        if (presetDropdown != null && !string.IsNullOrEmpty(presetDropdown.value))
+        {
+            presetNameBeingApplied = presetDropdown.value; 
+        }
+
         if (workingPresetCopy == null)
         {
             Debug.LogError("Cannot apply structure: No working preset data available.");
             EditorUtility.DisplayDialog("Error", "Cannot apply structure: No preset data loaded.", "OK");
             return;
+        }
+
+        string currentJson = EditorJsonUtility.ToJson(new FolderNodeListWrapper { RootNodes = workingPresetCopy }, false);
+        string lastAppliedJson = (lastAppliedStructure == null) ? null : EditorJsonUtility.ToJson(new FolderNodeListWrapper { RootNodes = lastAppliedStructure }, false);
+
+        if (currentJson == lastAppliedJson)
+        {
+            EditorUtility.DisplayDialog(
+            "Already Applied Structure",
+            "This structue is already applied to the project.\n",
+            "Cancel");
+            return;
+
         }
        
         bool confirm = EditorUtility.DisplayDialog(
@@ -554,15 +576,22 @@ public class AssetOrganiserEditor : EditorWindow
 
         try
         {
-            Debug.Log("Applying folder structure to project...");
+            Debug.Log($"Applying structure for preset: {presetNameBeingApplied}..."); 
 
             FolderStructureManager.ApplyFolderStructure(workingPresetCopy);
+
             
             Debug.Log("Folder structure applied successfully.");
             EditorUtility.DisplayDialog(
                 "Success",
                 "Folder structure applied successfully.\n(Missing folders were created).",
                 "OK");
+
+            lastAppliedStructure = FolderStructureManager.DeepCloneList(workingPresetCopy);
+
+            EditorPrefs.SetString(FolderStructureManager.LastAppliedPresetPrefKey, presetNameBeingApplied);
+            Debug.Log($"Saved '{presetNameBeingApplied}' to EditorPrefs as last applied preset.");
+
         }
         catch (IOException ioEx)
         {
@@ -579,5 +608,6 @@ public class AssetOrganiserEditor : EditorWindow
             Debug.LogError($"An unexpected error occurred while applying folder structure: {ex.Message}\n{ex.StackTrace}");
             EditorUtility.DisplayDialog("Apply Error", $"An unexpected error occurred:\n{ex.Message}", "OK");
         }
+
     }
 }

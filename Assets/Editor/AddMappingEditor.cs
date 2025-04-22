@@ -11,6 +11,7 @@ public class AddMappingEditor : EditorWindow
     public event Action<string> OnApplyMappings;
     public FolderNode TargetNode { get; set; }
 
+    // List of pre-defined extensions for the user to map to folders. 
     private List<string> extensions = new List<string>()
     {
         // Textures
@@ -32,11 +33,11 @@ public class AddMappingEditor : EditorWindow
         ".max",
         ".ma",
         ".mb",
-        // Add .max, .ma, .mb etc. if common for your users
+        
 
         // Materials
         ".mat",
-        ".physicsmaterial", // Physics Material 2D & 3D
+        ".physicsmaterial", 
 
         // Audio
         ".wav",
@@ -73,7 +74,7 @@ public class AddMappingEditor : EditorWindow
         ".json",
         ".xml",
         ".csv",
-        ".bytes", // TextAsset raw bytes
+        ".bytes", 
 
         // Video
         ".mp4",
